@@ -5,13 +5,17 @@
 #include <string.h>
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include <pthread.h>
 
 extern int errno;
 
@@ -62,10 +66,12 @@ int setupSocketSender() {
 int setupSocketReceiver(int port) {
   int sock_fd = setupSocketSender();
   int enable = 1;
-  if(setsockopt(sock_fd, SOL_SOCKET,SO_REUSEADDR, &enable, sizeof(enable)) < 0){
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) <
+      0) {
     ERROR();
   }
-  if(setsockopt(sock_fd, SOL_SOCKET,SO_REUSEPORT, &enable, sizeof(enable)) < 0){
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable)) <
+      0) {
     ERROR();
   }
   struct sockaddr_in recv_addr;
@@ -79,4 +85,67 @@ int setupSocketReceiver(int port) {
   }
 
   return sock_fd;
+}
+
+#define FILE_CHUNK_SIZE 512
+
+#define FILE_CHUNK_UNSENT   0
+#define FILE_CHUNK_SENT     1
+#define FILE_CHUNK_UNRECEIVED 0 
+#define FILE_CHUNK_RECEIVED 2
+
+typedef struct {
+  int index;
+  int status;
+  size_t size;
+  char data[FILE_CHUNK_SIZE];
+} FileChunk;
+
+typedef struct {
+  int fd;
+  int readIndex;
+  size_t size;
+  size_t written;
+  size_t received;
+  FileChunk chunks[0];
+} FileHeaderReceiver;
+
+typedef struct {
+  int fd;
+  size_t size;
+  size_t read;
+  size_t sent;
+  FileChunk chunks[0];
+} FileHeaderSender;
+
+FileHeaderSender *setupFileSender(char *path) {
+  // Open file
+  int file_fd = open(path, O_RDONLY);
+  if (file_fd == -1)
+    ERROR();
+  // Load file info
+  struct stat fileStat;
+  if (fstat(file_fd, &fileStat) == -1)
+    ERROR();
+  size_t fileSize = fileStat.st_size;
+  size_t blockSize = fileStat.st_blksize;
+  printf("file size: %ld;block size: %ld\n", fileSize, blockSize);
+  // Allocate Memory for file storage
+  size_t chunkFileSize = (fileSize - 1) / FILE_CHUNK_SIZE + 1;
+  size_t sizeHeader =
+      sizeof(FileHeaderSender) + chunkFileSize * sizeof(FileChunk);
+  FileHeaderSender *header = (FileHeaderSender *)malloc(sizeHeader);
+  bzero(header, sizeHeader);
+
+  header->fd = file_fd;
+  header->size = chunkFileSize;
+  return header;
+}
+
+int setupFileReceiver(char *path) {
+  int file_fd = open(path, O_RDWR | O_TRUNC | O_CREAT, 0644);
+  if (file_fd == -1)
+    ERROR();
+
+  return file_fd;
 }

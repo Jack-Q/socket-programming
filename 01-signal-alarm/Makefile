@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-std=c99 -Wall -g -D_DEFAULT_SOURCE -O3 -DDEBUG
+CFLAGS=-std=c99 -Wall -g -D_DEFAULT_SOURCE -O3 -DDEBUG -pthread
 TEST=./test
 SHELL=/bin/bash
 
