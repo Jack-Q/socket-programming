@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     ERROR();
 
   buffer[recv_len] = 0;
-  printf("Receiver acknownlwdged: %s", buffer);
+  printf("Receiver acknownlwdged: %s\n", buffer);
 
   return 0;
 }
