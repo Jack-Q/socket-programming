@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <pthread.h>
 
@@ -33,6 +34,11 @@ void error() {
   exit(1);
 }
 #endif
+
+typedef void (*sighandler_t)(int);
+void SIGALRM_handler(int sig){
+  return;
+}
 
 void printUsageSender(char *name) {
   printf("USAGE: %s <HostName> <Port> <ReadFrom>\n", name);
@@ -87,11 +93,12 @@ int setupSocketReceiver(int port) {
   return sock_fd;
 }
 
-#define FILE_CHUNK_SIZE 512
+
+#define FILE_CHUNK_SIZE 256
 
 #define FILE_CHUNK_UNSENT   0
 #define FILE_CHUNK_SENT     1
-#define FILE_CHUNK_UNRECEIVED 0 
+#define FILE_CHUNK_UNRECEIVED 0
 #define FILE_CHUNK_RECEIVED 2
 
 typedef struct {
@@ -142,10 +149,49 @@ FileHeaderSender *setupFileSender(char *path) {
   return header;
 }
 
-int setupFileReceiver(char *path) {
+int setupFileReceiver(char *path, size_t file_size) {
   int file_fd = open(path, O_RDWR | O_TRUNC | O_CREAT, 0644);
   if (file_fd == -1)
     ERROR();
 
   return file_fd;
+}
+
+
+void *readFile(void *fileHeader) {
+  FileHeaderSender *file = (FileHeaderSender *) fileHeader;
+  while (file->read < file->size) {
+    int readSize = read(file->fd, file->chunks[file->read].data, FILE_CHUNK_SIZE);
+    if (readSize == -1) {
+      if (errno == EINTR)
+        continue;
+      else
+        ERROR();
+    }
+    file->chunks[file->read].index = file->read;
+    file->chunks[file->read].size = readSize;
+    file->chunks[file->read].status = FILE_CHUNK_UNSENT;
+    file->read++;
+    printf("Read chunk %ld with size %d\n", file->read, readSize);
+  }
+  printf("Load file finished\n");
+  pthread_exit(0);
+}
+
+void *writeFile(void *fileHeader){
+  FileHeaderReceiver *file = (FileHeaderReceiver *) fileHeader;
+  for(size_t i = 0; i < file->size; i++){
+    while(file->chunks[i].status != FILE_CHUNK_RECEIVED){
+      usleep(100);
+    }
+    while(1){
+      int size =  write(file->fd, file->chunks[i].data, file->chunks[i].size);
+      if(size != -1) break;
+      if(errno != EINTR) ERROR();
+    }
+
+    printf("Write chunk %ld with size %ld\n", i, file->chunks[i].size);
+  }
+  printf("Write file finish");
+  pthread_exit(0);
 }

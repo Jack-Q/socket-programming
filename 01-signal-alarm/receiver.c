@@ -2,9 +2,8 @@
 
 #define BUFFER_RECV 1024
 
-void SIGALRM_handler(int sig){
-  return;
-}
+FileHeaderReceiver *file;
+FileChunk buffer[20];
 
 int main(int argc, char **argv) {
   // argv: prog_name, port, fname
@@ -15,7 +14,7 @@ int main(int argc, char **argv) {
 
   int sock_fd = setupSocketReceiver(atoi(argv[1]));
 
-  int file_fd = setupFileReceiver(argv[2]);
+  int file_fd = setupFileReceiver(argv[2], fileSize);
 
 
   struct sockaddr_in send_addr;
