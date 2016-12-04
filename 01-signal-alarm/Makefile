@@ -16,6 +16,7 @@ test: all | test-dir
 	@dd status=none if=/dev/urandom of=test/input_file bs=5M count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &
+	@sleep 0.05
 	@/usr/bin/time -f"  Sender: %E real, %U user, %S sys." \
 		./sender localhost 7777 test/input_file
 	@diff test/input_file output_file
