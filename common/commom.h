@@ -66,11 +66,10 @@ int setupSocketReceiver(int port) {
   recv_addr.sin_family = AF_INET;
   recv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   recv_addr.sin_port = htons(port);
-  
-  if(bind(sock_fd, (struct sockaddr *) &recv_addr, sizeof(recv_addr)) < 0){
+
+  if (bind(sock_fd, (struct sockaddr *)&recv_addr, sizeof(recv_addr)) < 0) {
     ERROR();
   }
 
   return sock_fd;
-
 }
