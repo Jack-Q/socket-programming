@@ -61,6 +61,13 @@ int setupSocketSender() {
 
 int setupSocketReceiver(int port) {
   int sock_fd = setupSocketSender();
+  int enable = 1;
+  if(setsockopt(sock_fd, SOL_SOCKET,SO_REUSEADDR, &enable, sizeof(enable)) < 0){
+    ERROR();
+  }
+  if(setsockopt(sock_fd, SOL_SOCKET,SO_REUSEPORT, &enable, sizeof(enable)) < 0){
+    ERROR();
+  }
   struct sockaddr_in recv_addr;
   bzero(&recv_addr, sizeof(recv_addr));
   recv_addr.sin_family = AF_INET;
