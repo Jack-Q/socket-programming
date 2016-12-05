@@ -69,13 +69,20 @@ int receiveAck(){
   } else {
     *head &= 0x3fffffff;
   }
-
+  int ackBase = *head >> 16, ackCount = *head & 0xffff;
   int update = 0;
-  for (uint32_t i = 0; i < *head; i++) {
+  for(int i = 0; i < ackBase; i++){
+    if(file->chunks[i].status == FILE_CHUNK_SENT) {
+      file->chunks[i].status = FILE_CHUNK_RECEIVED;
+      file->sent++;
+      update++;
+    }
+  }
+  for (int i = 0; i < ackCount; i++) {
     uint8_t k =
         *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
     if ((k >> (i % 8)) & 1) {
-      if (file->chunks[i].status == FILE_CHUNK_SENT) {
+      if (file->chunks[ackBase + i].status == FILE_CHUNK_SENT) {
         file->chunks[i].status = FILE_CHUNK_RECEIVED;
         file->sent++;
         update++;

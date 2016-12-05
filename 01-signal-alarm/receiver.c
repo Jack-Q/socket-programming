@@ -16,7 +16,6 @@ char buffer[BUFFER_RECV];
 
 char *fileName;
 
-
 int receiveData() {
   int32_t *head = (int32_t *)buffer;
   if (*head & 0x40000000) {
@@ -88,17 +87,20 @@ int sendAck() {
 
   } else {
 
-    size_t size = sizeof(int32_t) + (file->size - 1) / 8 * sizeof(int8_t) + 1;
+    int ackBase = file->received_lo;
+    int ackCount = file->received_hi - file->received_lo;
+    size_t size = sizeof(int32_t) + (ackCount - 1) / 8 * sizeof(int8_t) + 1;
     bzero(buffer, size);
 
     int32_t *head = (int32_t *)buffer;
-    *head = file->size | 0x40000000;
+    *head = ackCount | (ackBase << 16) | 0x40000000;
 
-    for (size_t i = 0; i * 8 < file->size; i++) {
+    for (int i = 0; i * 8 < ackCount; i++) {
       int8_t *k = (int8_t *)(buffer + sizeof(int32_t) + i * sizeof(int8_t));
-      for (size_t j = 0; j < 8 && j + i * 8 < file->size; j++)
-        *k |= file->chunks[i * 8 + j].status == FILE_CHUNK_RECEIVED ? (1 << j)
-                                                                    : 0;
+      for (int j = 0; j < 8 && j + i * 8 < ackCount; j++)
+        *k |= file->chunks[ackBase + i * 8 + j].status == FILE_CHUNK_RECEIVED
+                  ? (1 << j)
+                  : 0;
     }
 
     if (sendto(sock_fd, buffer, size, 0, (struct sockaddr *)&send_addr,
@@ -143,7 +145,7 @@ int main(int argc, char **argv) {
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
     if (recv_len == -1ul) {
-      if (errno != EINTR){
+      if (errno != EINTR) {
         ERROR();
       }
       printf("ALARM\n");
@@ -153,16 +155,16 @@ int main(int argc, char **argv) {
       alarm(0);
       receiveData();
       send_addr_set = 1;
-      if(ackCount>=0) ackCount++;
+      if (ackCount >= 0)
+        ackCount++;
     }
-
 
     if (file && (file->received == file->size)) {
       sendFin();
       break;
     }
 
-    if(send_addr_set && (ackCount > 100 || ackCount < 0)){
+    if (send_addr_set && (ackCount > 100 || ackCount < 0)) {
       sendAck();
       ackCount = 0;
     }

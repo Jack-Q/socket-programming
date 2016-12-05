@@ -113,8 +113,8 @@ typedef struct {
   size_t size;
   size_t written;
   size_t received;
-  int received_lo;
-  int received_hi;
+  int received_lo; // first unfilled posotion
+  int received_hi; // next position of last filled 
   FileChunk chunks[0];
 } FileHeaderReceiver;
 
@@ -128,9 +128,10 @@ typedef struct {
 
 
 void updateReceiveIndexRange(FileHeaderReceiver *recv, int cur){
-  recv->received_hi = recv->received_hi > cur ? recv->received_hi : cur;
-  if(recv->received_lo == cur - 1)
-    while(recv->chunks[recv->received_lo++].status == FILE_CHUNK_RECEIVED);
+  recv->received_hi = recv->received_hi <= cur ? recv->received_hi : cur + 1;
+  if(recv->received_lo == cur)
+    while(recv->received_lo < (int)recv->size && recv->chunks[recv->received_lo].status == FILE_CHUNK_RECEIVED)
+      recv->received_lo++;
 }
 
 FileHeaderSender *setupFileSender(char *path) {
