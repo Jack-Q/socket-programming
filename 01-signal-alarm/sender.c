@@ -64,12 +64,12 @@ int main(int argc, char **argv) {
         if (currentPos == file->size)
           turn = 1, currentPos = 0;
       }
-      usleep(1500);
+      usleep(100);
     }
     if (k % (sending >= MAX_SENDING ? 100: 10) == 0 ) {
       // Wait for a package
       // alarm(ALARM_DELAY);
-      ualarm(1000*60,0);
+      ualarm(1000*10,0);
       int recv_len = recvfrom(sock_fd, buffer, sizeof(buffer), 0, NULL, 0);
       if (recv_len == -1) {
         if (errno == EINTR)
