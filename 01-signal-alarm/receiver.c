@@ -16,11 +16,11 @@ char buffer[BUFFER_RECV];
 
 char *fileName;
 
+
 int receiveData() {
   int32_t *head = (int32_t *)buffer;
   if (*head & 0x40000000) {
     if (file == NULL) {
-      printf("[HEADRCV]");
       // process header package
       size_t file_size = *head & 0x3fffffff;
       file = setupFileReceiver(fileName, file_size);
@@ -33,16 +33,13 @@ int receiveData() {
         file->chunks[tmpChunk->index].size = tmpChunk->size;
         file->chunks[tmpChunk->index].status = FILE_CHUNK_RECEIVED;
         file->received++;
+        updateReceiveIndexRange(file, tmpChunk->index);
       }
       // open write thread
       if (pthread_create(&fileThread, NULL, &writeFile, file) < 0)
         ERROR();
-    } else {
-      printf("Extra header package received\n");
     }
-
   } else {
-    // TODO: re-receive
     size_t chunkSize = *head >> 16;
     int chunkIndex = *head & 0xffff;
     if (file == NULL) {
@@ -57,13 +54,13 @@ int receiveData() {
       maxIndex = maxIndex > chunkIndex ? maxIndex : chunkIndex;
     } else {
       // Put data to storage
-      printf("[RCV%d]", chunkIndex);
       if (file->chunks[chunkIndex].status == FILE_CHUNK_UNRECEIVED) {
         memcpy(file->chunks[chunkIndex].data, buffer + sizeof(int32_t),
                chunkSize);
         file->chunks[chunkIndex].size = chunkSize;
         file->chunks[chunkIndex].status = FILE_CHUNK_RECEIVED;
         file->received++;
+        updateReceiveIndexRange(file, chunkIndex);
       }
     }
   }

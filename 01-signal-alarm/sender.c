@@ -113,10 +113,6 @@ int main(int argc, char **argv) {
 
   int turn = 0;
   while (1) {
-    if (currentPos < file->read) {
-      sendData(currentPos);
-      usleep(100);
-    }
 
     if (turn == 1) {
       int status = receiveAck();
@@ -126,6 +122,7 @@ int main(int argc, char **argv) {
         // updated count
         if(file->sent == file->size)
           break;
+        continue;
       }
     }
 
@@ -137,6 +134,10 @@ int main(int argc, char **argv) {
       }
     } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
 
+    if (currentPos < file->read) {
+      sendData(currentPos);
+      usleep(100);
+    }
   }
   pthread_join(fileThread, NULL);
   return 0;

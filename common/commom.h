@@ -110,10 +110,11 @@ typedef struct {
 
 typedef struct {
   int fd;
-  int readIndex;
   size_t size;
   size_t written;
   size_t received;
+  int received_lo;
+  int received_hi;
   FileChunk chunks[0];
 } FileHeaderReceiver;
 
@@ -124,6 +125,13 @@ typedef struct {
   size_t sent;
   FileChunk chunks[0];
 } FileHeaderSender;
+
+
+void updateReceiveIndexRange(FileHeaderReceiver *recv, int cur){
+  recv->received_hi = recv->received_hi > cur ? recv->received_hi : cur;
+  if(recv->received_lo == cur - 1)
+    while(recv->chunks[recv->received_lo++].status == FILE_CHUNK_RECEIVED);
+}
 
 FileHeaderSender *setupFileSender(char *path) {
   // Open file
@@ -199,8 +207,6 @@ void *writeFile(void *fileHeader){
       if(size != -1) break;
       if(errno != EINTR) ERROR();
     }
-
-    printf("[WRT%ld,%ld]\n", i, file->chunks[i].size);
   }
   printf("Write file finish");
   pthread_exit(0);
