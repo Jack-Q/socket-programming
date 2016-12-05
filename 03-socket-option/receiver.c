@@ -151,8 +151,6 @@ int main(int argc, char **argv) {
       // Timeout
       ackCount = -1;
     } else {
-      // ualarm(0, 0);
-      alarm(0);
       receiveData();
       send_addr_set = 1;
       if (ackCount >= 0)
