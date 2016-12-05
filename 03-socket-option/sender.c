@@ -45,7 +45,8 @@ int receiveAck(){
   if (recv_len == -1) {
     if (errno != EINTR)
     ERROR();
-    // Alarm timeout
+
+    printf("Alarm arrival\n");
     return -2;
   }
 
@@ -56,12 +57,12 @@ int receiveAck(){
   // Data format: {HEAD&LEN, BITS}
   uint32_t *head = (uint32_t *)buffer;
   if (*head == 0xffffffff) {
-    // Finish
+    printf("Finish\n");
     return -1;
   }
 
   if (!(*head & 0x40000000)) {
-    // Header lost, request resend
+    printf("header lost, resend header");
     sendHeader();
   } else {
     *head &= 0x3fffffff;
@@ -86,6 +87,8 @@ int receiveAck(){
       }
     }
   }
+
+  printf("[ACK%d]", update);
   return update;
 }
 

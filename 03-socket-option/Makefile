@@ -3,8 +3,9 @@
 # Jack Q (qiaobo@outlook.com) / 0540017, CS, NCTU
 ###########################################################
 
+
 CC=gcc
-CFLAGS=-std=c99 -Wall -g -D_DEFAULT_SOURCE -O3 -pthread
+CFLAGS=-std=c99 -Wall -g -D_DEFAULT_SOURCE -O3 -DDEBUG -pthread
 TEST=./test
 SHELL=/bin/bash
 
@@ -21,7 +22,7 @@ all: $(SEND) $(RECV)
 
 test: all | test-dir
 	@echo
-	@echo "#### Test Program 01:alarm with file size $(FILESIZE) ####"
+	@echo "#### Test Program 03:socket option with file size $(FILESIZE) ####"
 	@dd status=none if=/dev/urandom of=test/input_file bs=$(FILESIZE) count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &

@@ -2,6 +2,7 @@
 
 #define BUFFER_RECV 5120
 #define CHUNK_BUFFER_SIZE 100
+#define SELECT_DELAY_USEC (100 * 1000)
 
 FileHeaderReceiver *file = NULL;
 int chunkBufferPos = 0;
@@ -21,6 +22,7 @@ int receiveData() {
   if (*head & 0x40000000) {
     if (file == NULL) {
       // process header package
+      printf("[Header]\n");
       size_t file_size = *head & 0x3fffffff;
       file = setupFileReceiver(fileName, file_size);
       // merge chunk buffer
@@ -86,6 +88,7 @@ int sendAck() {
       ERROR();
 
   } else {
+    printf("[l%d,h%d]", file->received_lo, file->received_hi);
     int ackBase = file->received_lo;
     int ackCount = file->received_hi - file->received_lo;
     size_t size = sizeof(int32_t) + (ackCount - 1) / 8 * sizeof(int8_t) + 1;
@@ -134,23 +137,27 @@ int main(int argc, char **argv) {
   bzero(&send_addr, sizeof(send_addr));
   socklen_t addrlen = sizeof(send_addr);
 
-  signal(SIGALRM, SIGALRM_handler);
-  siginterrupt(SIGALRM, 1);
+  fd_set fds;
+  struct timeval select_timeout;
 
   int ackCount = 0;
   while (1) {
-    // ualarm(1000 * 200, 0);
-    alarm(1);
-    size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
-                               (struct sockaddr *)&send_addr, &addrlen);
-    if (recv_len == -1ul) {
-      if (errno != EINTR) {
-        ERROR();
-      }
+
+    FD_ZERO(&fds);
+    FD_SET(sock_fd, &fds);
+    select_timeout.tv_sec = 0;
+    select_timeout.tv_usec = SELECT_DELAY_USEC;
+    int status = select(sock_fd + 1, &fds, NULL, NULL, &select_timeout);
+    if (status == -1) ERROR();
+    if (status == 0) {
+      // Timeout
       ackCount = -1;
     } else {
-      // ualarm(0, 0);
-      alarm(0);
+      size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
+                                 (struct sockaddr *)&send_addr, &addrlen);
+      if (recv_len == -1ul) {
+        ERROR();
+      }
       receiveData();
       send_addr_set = 1;
       if (ackCount >= 0)
@@ -162,7 +169,9 @@ int main(int argc, char **argv) {
       break;
     }
 
-    if (send_addr_set && (ackCount > (file ? (int)(file->size - file->received) : 0) + 50 || ackCount < 0)) {
+    if (send_addr_set &&
+        (ackCount > (file ? (int)(file->size - file->received) : 0) + 50 ||
+         ackCount < 0)) {
       sendAck();
       ackCount = 0;
     }

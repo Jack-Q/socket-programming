@@ -141,8 +141,6 @@ FileHeaderSender *setupFileSender(char *path) {
   if (fstat(file_fd, &fileStat) == -1)
     ERROR();
   size_t fileSize = fileStat.st_size;
-  size_t blockSize = fileStat.st_blksize;
-  printf("file size: %ld;block size: %ld\n", fileSize, blockSize);
   // Allocate Memory for file storage
   size_t chunkFileSize = (fileSize - 1) / FILE_CHUNK_SIZE + 1;
   size_t sizeHeader =
@@ -191,7 +189,6 @@ void *readFile(void *fileHeader) {
     file->read++;
     // printf("Read chunk %ld with size %d\n", file->read, readSize);
   }
-  printf("Load file finished\n");
   pthread_exit(0);
 }
 
@@ -209,6 +206,5 @@ void *writeFile(void *fileHeader) {
         ERROR();
     }
   }
-  printf("Write file finish");
   pthread_exit(0);
 }

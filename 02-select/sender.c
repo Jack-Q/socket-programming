@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define ALARM_DELAY 1
+#define SELECT_DELAY_USEC (100*1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
@@ -38,30 +38,21 @@ int sendData(size_t position){
 
 int receiveAck(){
   // Wait for a package
-  alarm(ALARM_DELAY);
-  // ualarm(1000 * 100, 0);
   int recv_len = recvfrom(sock_fd, buffer, sizeof(buffer), 0, NULL, 0);
 
   if (recv_len == -1) {
-    if (errno != EINTR)
     ERROR();
-    // Alarm timeout
-    return -2;
   }
-
-  // Receive response
-  //ualarm(0, 0);
-  alarm(0);
 
   // Data format: {HEAD&LEN, BITS}
   uint32_t *head = (uint32_t *)buffer;
   if (*head == 0xffffffff) {
-    // Finish
+    printf("Finish\n");
     return -1;
   }
 
   if (!(*head & 0x40000000)) {
-    // Header lost, request resend
+    printf("header lost, resend header");
     sendHeader();
   } else {
     *head &= 0x3fffffff;
@@ -86,6 +77,8 @@ int receiveAck(){
       }
     }
   }
+
+  printf("[ACK%d]", update);
   return update;
 }
 
@@ -100,8 +93,8 @@ int main(int argc, char **argv) {
   sock_fd = setupSocketSender();
   setupAddr(&recv_addr, argv[1], atoi(argv[2]));
 
-  signal(SIGALRM, SIGALRM_handler);
-  siginterrupt(SIGALRM, 1);
+  fd_set fds;
+  struct timeval select_timeout;
 
   file = setupFileSender(argv[3]);
   if (pthread_create(&fileThread, NULL, &readFile, file) < 0)
@@ -109,20 +102,29 @@ int main(int argc, char **argv) {
 
   sendHeader();
 
+
   // Send file content
   size_t currentPos = 0;
 
   int turn = 0;
   while (1) {
     if (turn == 1) {
-      int status = receiveAck();
-      if(status == -1) break; // Finished
-      else if(status == -2) turn = 0;// Out of time
+      FD_ZERO(&fds);
+      FD_SET(sock_fd, &fds);
+      select_timeout.tv_sec = 0;
+      select_timeout.tv_usec = SELECT_DELAY_USEC;
+      int status = select(sock_fd + 1, &fds, NULL, NULL, &select_timeout);
+      if(status == -1) ERROR();
+      if(status == 0) turn = 0;
       else {
-        // updated count
-        if(file->sent == file->size)
+        status = receiveAck();
+        if(status == -1) break; // Finished
+        else {
+          // updated count
+          if(file->sent == file->size)
           break;
-        continue;
+          continue;
+        }
       }
     }
 
