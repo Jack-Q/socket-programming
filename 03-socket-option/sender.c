@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
 
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(30);
+      usleep(10);
       if(file->size - file->sent < 50)
         sendData(currentPos), usleep(10);
     }

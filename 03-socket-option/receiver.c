@@ -122,7 +122,7 @@ int sendFin() {
     if (sendto(sock_fd, buffer, sizeof(int32_t), 0,
                (struct sockaddr *)&send_addr, sizeof(send_addr)) < 0)
       ERROR();
-    usleep(1000);
+    usleep(10);
   }
   return 0;
 }
