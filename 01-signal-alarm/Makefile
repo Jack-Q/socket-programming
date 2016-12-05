@@ -13,12 +13,14 @@ all: $(SEND) $(RECV)
 	@$(CC) $(CFLAGS) -o $@ $<
 
 test: all | test-dir
-	@dd status=none if=/dev/urandom of=test/input_file bs=10MB count=1
+	@dd status=none if=/dev/urandom of=test/input_file bs=5MB count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &
 	@sleep 0.05
 	@/usr/bin/time -f"  Sender: %E real, %U user, %S sys." \
 		./sender localhost 7777 test/input_file
+  # Wait server finish
+	@sleep 3
 	@diff test/input_file test/output_file
 
 clean:
