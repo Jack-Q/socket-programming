@@ -16,7 +16,7 @@ int sendHeader() {
     if (sendto(sock_fd, info, sizeof(info), 0, (struct sockaddr *)&recv_addr,
                sizeof(recv_addr)) == -1)
       ERROR();
-    usleep(1000);
+    usleep(50);
   }
   return 0;
 }

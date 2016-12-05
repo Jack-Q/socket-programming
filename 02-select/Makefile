@@ -22,7 +22,7 @@ all: $(SEND) $(RECV)
 
 test: all | test-dir
 	@echo
-	@echo "#### Test Program 02:select option with file size $(FILESIZE) ####"
+	@echo "#### Test Program 02:select with file size $(FILESIZE) ####"
 	@dd status=none if=/dev/urandom of=test/input_file bs=$(FILESIZE) count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &
