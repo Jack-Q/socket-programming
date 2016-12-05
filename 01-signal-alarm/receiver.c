@@ -160,6 +160,8 @@ int main(int argc, char **argv) {
       send_addr_set = 1;
       if (ackCount >= 0)
         ackCount++;
+      else
+        ackCount=0;
     }
 
     if (file && (file->received == file->size)) {
