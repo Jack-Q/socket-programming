@@ -152,6 +152,7 @@ int main(int argc, char **argv) {
         ERROR();
       }
       // Timeout
+      printf("[RECV_TIMEOUT]");
       ackCount = -1;
     } else {
       receiveData();

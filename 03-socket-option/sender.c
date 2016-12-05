@@ -43,6 +43,7 @@ int receiveAck(){
     if (errno != EWOULDBLOCK)
       ERROR();
     // Timeout
+    printf("[SENDER_TIMOUT]");
     return -2;
   }
 
@@ -79,7 +80,7 @@ int receiveAck(){
     }
   }
 
-  // printf("[ACK%d]", update);
+  printf("[ACK%d]", update);
   return update;
 }
 
