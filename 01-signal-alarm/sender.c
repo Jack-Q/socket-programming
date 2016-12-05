@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
   while (1) {
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(150);
+      usleep(1);
     }
 
     if (turn == 1) {
@@ -128,7 +128,6 @@ int main(int argc, char **argv) {
           break;
       }
     }
-
 
     do {
       currentPos++;
