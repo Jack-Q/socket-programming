@@ -40,8 +40,8 @@ int sendData(size_t position){
 
 int receiveAck(){
   // Wait for a package
-  // alarm(ALARM_DELAY);
-  ualarm(1000 * 100, 0);
+  alarm(ALARM_DELAY);
+  // ualarm(1000 * 100, 0);
   int recv_len = recvfrom(sock_fd, buffer, sizeof(buffer), 0, NULL, 0);
 
   if (recv_len == -1) {
@@ -53,7 +53,8 @@ int receiveAck(){
   }
 
   // Receive response
-  ualarm(0, 0);
+  //ualarm(0, 0);
+  alarm(0);
 
   // Data format: {HEAD&LEN, BITS}
   uint32_t *head = (uint32_t *)buffer;
