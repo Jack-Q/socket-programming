@@ -9,11 +9,11 @@ RECV=receiver
 .PHONY: all test clean
 all: $(SEND) $(RECV)
 
-%: %.c
+%: %.c ../common/common.h
 	@$(CC) $(CFLAGS) -o $@ $<
 
 test: all | test-dir
-	@dd status=none if=/dev/urandom of=test/input_file bs=1MB count=1
+	@dd status=none if=/dev/urandom of=test/input_file bs=10MB count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &
 	@sleep 0.05
