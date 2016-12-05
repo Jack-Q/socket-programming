@@ -139,6 +139,7 @@ int main(int argc, char **argv) {
   signal(SIGALRM, SIGALRM_handler);
   siginterrupt(SIGALRM, 1);
 
+  int ackCount = 0;
   while (1) {
     ualarm(1000 * 200, 0);
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
@@ -148,19 +149,22 @@ int main(int argc, char **argv) {
         ERROR();
       }
       printf("ALARM\n");
+      ackCount = -1;
     } else {
       ualarm(0, 0);
       receiveData();
       send_addr_set = 1;
+      if(ackCount>=0) ackCount++;
     }
 
-    if(send_addr_set){
-      sendAck();
-    }
 
     if (file && (file->received == file->size)) {
       sendFin();
       break;
+    }
+
+    if(send_addr_set && ackCount > 100 && ackCount < 0){
+      sendAck();
     }
   }
 
