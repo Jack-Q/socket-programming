@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define ALARM_DELAY 1
+#define SOCKET_OPTION_TIMEOUT_USEC (30 * 1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
@@ -37,22 +37,14 @@ int sendData(size_t position){
 }
 
 int receiveAck(){
-  // Wait for a package
-  alarm(ALARM_DELAY);
-  // ualarm(1000 * 100, 0);
   int recv_len = recvfrom(sock_fd, buffer, sizeof(buffer), 0, NULL, 0);
 
   if (recv_len == -1) {
-    if (errno != EINTR)
-    ERROR();
-
-    printf("Alarm arrival\n");
+    if (errno != EWOULDBLOCK)
+      ERROR();
+    // Timeout
     return -2;
   }
-
-  // Receive response
-  //ualarm(0, 0);
-  alarm(0);
 
   // Data format: {HEAD&LEN, BITS}
   uint32_t *head = (uint32_t *)buffer;
@@ -101,10 +93,9 @@ int main(int argc, char **argv) {
 
   // Setup connection structure
   sock_fd = setupSocketSender();
+  struct timeval timeout = {0, SOCKET_OPTION_TIMEOUT_USEC};
+  if(setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) ERROR();
   setupAddr(&recv_addr, argv[1], atoi(argv[2]));
-
-  signal(SIGALRM, SIGALRM_handler);
-  siginterrupt(SIGALRM, 1);
 
   file = setupFileSender(argv[3]);
   if (pthread_create(&fileThread, NULL, &readFile, file) < 0)
@@ -135,6 +126,7 @@ int main(int argc, char **argv) {
       if(file->size - file->sent < 50)
         sendData(currentPos), usleep(100);
     }
+
     do {
       currentPos++;
       if(currentPos == file->size){

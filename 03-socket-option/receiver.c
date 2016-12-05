@@ -2,6 +2,7 @@
 
 #define BUFFER_RECV 5120
 #define CHUNK_BUFFER_SIZE 100
+#define SOCKET_OPTION_TIMEOUT_USEC (30 * 1000)
 
 FileHeaderReceiver *file = NULL;
 int chunkBufferPos = 0;
@@ -132,24 +133,22 @@ int main(int argc, char **argv) {
   fileName = argv[2];
 
   sock_fd = setupSocketReceiver(atoi(argv[1]));
+  struct timeval timeout = {0, SOCKET_OPTION_TIMEOUT_USEC};
+  if(setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) ERROR();
 
   bzero(&send_addr, sizeof(send_addr));
   socklen_t addrlen = sizeof(send_addr);
 
-  signal(SIGALRM, SIGALRM_handler);
-  siginterrupt(SIGALRM, 1);
 
   int ackCount = 0;
   while (1) {
-    // ualarm(1000 * 200, 0);
-    alarm(1);
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
     if (recv_len == -1ul) {
-      if (errno != EINTR) {
+      if (errno != EWOULDBLOCK) {
         ERROR();
       }
-      printf("ALARM\n");
+      // Timeout
       ackCount = -1;
     } else {
       // ualarm(0, 0);
