@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
   // Send file info (three times)
   int32_t info[1] = {(int32_t)0x40000000 | (int32_t)file->size};
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 5; i++) {
     if (sendto(sock_fd, info, sizeof(info), 0, (struct sockaddr *)&recv_addr,
                sizeof(recv_addr)) == -1)
       ERROR();
@@ -55,13 +55,13 @@ int main(int argc, char **argv) {
         ERROR();
       chunk->status = FILE_CHUNK_SENT;
       sending++;
-      // printf("Sent chunk %ld\n", currentPos);
+      printf("[SNT%ld]", currentPos);
       if (turn == 0) {
         currentPos++;
         if (currentPos == file->size)
           turn = 1, currentPos = 0;
       }
-      usleep(500);
+      usleep(1000);
     }
     if (sending >= MAX_SENDING || k % 100 == 0) {
       // Wait for a package
