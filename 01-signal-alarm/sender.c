@@ -135,9 +135,9 @@ int main(int argc, char **argv) {
 
     if (currentPos < file->read) {
       sendData(currentPos);
-      if(file->size - file->sent < 50)
-        sendData(currentPos);
       usleep(100);
+      if(file->size - file->sent < 50)
+        sendData(currentPos), usleep(100);
     }
   }
   pthread_join(fileThread, NULL);
