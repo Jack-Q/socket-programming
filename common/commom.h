@@ -94,7 +94,7 @@ int setupSocketReceiver(int port) {
 }
 
 
-#define FILE_CHUNK_SIZE 256
+#define FILE_CHUNK_SIZE 1024
 
 #define FILE_CHUNK_UNSENT   0
 #define FILE_CHUNK_SENT     1
@@ -149,12 +149,22 @@ FileHeaderSender *setupFileSender(char *path) {
   return header;
 }
 
-int setupFileReceiver(char *path, size_t file_size) {
+FileHeaderReceiver *setupFileReceiver(char *path, size_t file_size) {
   int file_fd = open(path, O_RDWR | O_TRUNC | O_CREAT, 0644);
   if (file_fd == -1)
     ERROR();
+  size_t sizeHeader = sizeof(FileHeaderReceiver) + file_size * sizeof(FileChunk);
+  FileHeaderReceiver *header = (FileHeaderReceiver *)malloc(sizeHeader);
+  bzero(header, sizeHeader);
 
-  return file_fd;
+  header->fd = file_fd;
+  header->size = file_size;
+  for(size_t i = 0; i < header->size; i++){
+    header->chunks[i].index = i;
+    header->chunks[i].status = FILE_CHUNK_UNRECEIVED;
+    header->chunks[i].size = 0;
+  }
+  return header;
 }
 
 
@@ -172,7 +182,7 @@ void *readFile(void *fileHeader) {
     file->chunks[file->read].size = readSize;
     file->chunks[file->read].status = FILE_CHUNK_UNSENT;
     file->read++;
-    printf("Read chunk %ld with size %d\n", file->read, readSize);
+    // printf("Read chunk %ld with size %d\n", file->read, readSize);
   }
   printf("Load file finished\n");
   pthread_exit(0);
@@ -182,7 +192,7 @@ void *writeFile(void *fileHeader){
   FileHeaderReceiver *file = (FileHeaderReceiver *) fileHeader;
   for(size_t i = 0; i < file->size; i++){
     while(file->chunks[i].status != FILE_CHUNK_RECEIVED){
-      usleep(100);
+      usleep(1000);
     }
     while(1){
       int size =  write(file->fd, file->chunks[i].data, file->chunks[i].size);

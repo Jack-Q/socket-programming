@@ -19,7 +19,7 @@ test: all | test-dir
 	@sleep 0.05
 	@/usr/bin/time -f"  Sender: %E real, %U user, %S sys." \
 		./sender localhost 7777 test/input_file
-	@diff test/input_file output_file
+	@diff test/input_file test/output_file
 
 clean:
 	@rm -rf test
