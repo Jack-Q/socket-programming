@@ -141,7 +141,8 @@ int main(int argc, char **argv) {
 
   int ackCount = 0;
   while (1) {
-    ualarm(1000 * 200, 0);
+    // ualarm(1000 * 200, 0);
+    alarm(1);
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
     if (recv_len == -1ul) {
@@ -151,7 +152,8 @@ int main(int argc, char **argv) {
       printf("ALARM\n");
       ackCount = -1;
     } else {
-      ualarm(0, 0);
+      // ualarm(0, 0);
+      alarm(0);
       receiveData();
       send_addr_set = 1;
       if(ackCount>=0) ackCount++;
