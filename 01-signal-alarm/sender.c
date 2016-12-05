@@ -41,7 +41,7 @@ int sendData(size_t position){
 int receiveAck(){
   // Wait for a package
   // alarm(ALARM_DELAY);
-  ualarm(1000 * 10, 0);
+  ualarm(1000 * 100, 0);
   int recv_len = recvfrom(sock_fd, buffer, sizeof(buffer), 0, NULL, 0);
 
   if (recv_len == -1) {
@@ -106,43 +106,36 @@ int main(int argc, char **argv) {
   sendHeader();
 
   // Send file content
-  int sending = 0;
-  int turn = 0;
   size_t currentPos = 0;
 
-  int k = 0;
+
+  int turn = 0;
   while (1) {
-    k++;
-    if (sending < MAX_SENDING && currentPos < file->read) {
-      if (turn == 0) {
-        sendData(currentPos);
-        sending++;
-        currentPos++;
-        if (currentPos == file->size)
-          turn = 1, currentPos = 0;
-      }
+    if (currentPos < file->read) {
+      sendData(currentPos);
       usleep(100);
     }
 
-    if (k % (sending >= MAX_SENDING ? 100 : 10) == 0) {
+    if (turn == 1) {
       int status = receiveAck();
       if(status == -1) break; // Finished
-      else if(status == -2) sending = 0;// Out of time
+      else if(status == -2) turn = 0;// Out of time
       else {
         // updated count
+        if(file->sent == file->size)
+          break;
       }
     }
 
-    if (turn == 0)
-      continue;
-    if (file->sent < file->size) {
-      do {
-        currentPos++;
-        currentPos = currentPos == file->size ? 0 : currentPos;
-      } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
-    } else {
-      break;
-    }
+
+    do {
+      currentPos++;
+      if(currentPos == file->size){
+        turn = 1;
+        currentPos = 0;
+      }
+    } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
+
   }
   pthread_join(fileThread, NULL);
   return 0;
