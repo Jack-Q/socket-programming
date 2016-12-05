@@ -1,13 +1,13 @@
 #include "../common/commom.h"
 
 #define BUFFER_RECV 5120
-#define CHUNK_BUFFER_SIZE 100
+#define CHUNK_BUFFER_SIZE 1000
 #define SELECT_DELAY_USEC (100 * 1000)
 
 FileHeaderReceiver *file = NULL;
 int chunkBufferPos = 0;
 int maxIndex = 0;
-FileChunk chunkBuffer[CHUNK_BUFFER_SIZE];
+FileChunk* chunkBuffer[CHUNK_BUFFER_SIZE];
 
 int sock_fd;
 int send_addr_set = 0;
@@ -17,24 +17,27 @@ char buffer[BUFFER_RECV];
 
 char *fileName;
 
+
 int receiveData() {
   int32_t *head = (int32_t *)buffer;
   if (*head & 0x40000000) {
     if (file == NULL) {
       // process header package
-      printf("[Header]\n");
       size_t file_size = *head & 0x3fffffff;
       file = setupFileReceiver(fileName, file_size);
       // merge chunk buffer
       while (chunkBufferPos) {
         chunkBufferPos--;
-        FileChunk *tmpChunk = &chunkBuffer[chunkBufferPos];
+        FileChunk *tmpChunk = chunkBuffer[chunkBufferPos];
         memcpy(file->chunks[tmpChunk->index].data, tmpChunk->data,
                tmpChunk->size);
         file->chunks[tmpChunk->index].size = tmpChunk->size;
         file->chunks[tmpChunk->index].status = FILE_CHUNK_RECEIVED;
         file->received++;
         updateReceiveIndexRange(file, tmpChunk->index);
+        // Free Memory
+        free(tmpChunk);
+        chunkBuffer[chunkBufferPos] = NULL;
       }
       // open write thread
       if (pthread_create(&fileThread, NULL, &writeFile, file) < 0)
@@ -47,9 +50,10 @@ int receiveData() {
       // Place items to buffer first
       if (chunkBufferPos >= CHUNK_BUFFER_SIZE)
         printf("CHUNK_BUFFER_OVERFLOW"), ERROR();
-      chunkBuffer[chunkBufferPos].size = chunkSize;
-      chunkBuffer[chunkBufferPos].index = chunkIndex;
-      memcpy(chunkBuffer[chunkBufferPos].data, buffer + sizeof(int32_t),
+      chunkBuffer[chunkBufferPos] = (FileChunk *) malloc(sizeof(FileChunk));
+      chunkBuffer[chunkBufferPos]->size = chunkSize;
+      chunkBuffer[chunkBufferPos]->index = chunkIndex;
+      memcpy(chunkBuffer[chunkBufferPos]->data, buffer + sizeof(int32_t),
              chunkSize);
       chunkBufferPos++;
       maxIndex = maxIndex > chunkIndex ? maxIndex : chunkIndex;
@@ -77,7 +81,7 @@ int sendAck() {
     *head = maxIndex;
 
     for (int i = 0; i < chunkBufferPos; i++) {
-      int index = chunkBuffer[i].index;
+      int index = chunkBuffer[i]->index;
       int8_t *k =
           (int8_t *)(buffer + sizeof(int32_t) + index / 8 * sizeof(int8_t));
       *k |= 1 << (index % 8);
@@ -88,7 +92,7 @@ int sendAck() {
       ERROR();
 
   } else {
-    printf("[l%d,h%d]", file->received_lo, file->received_hi);
+    // printf("[l%d,h%d]", file->received_lo, file->received_hi);
     int ackBase = file->received_lo;
     int ackCount = file->received_hi - file->received_lo;
     size_t size = sizeof(int32_t) + (ackCount - 1) / 8 * sizeof(int8_t) + 1;

@@ -49,7 +49,6 @@ int receiveAck(){
   // Data format: {HEAD&LEN, BITS}
   uint32_t *head = (uint32_t *)buffer;
   if (*head == 0xffffffff) {
-    printf("Finish\n");
     return -1;
   }
 
@@ -80,7 +79,7 @@ int receiveAck(){
     }
   }
 
-  printf("[ACK%d]", update);
+  // printf("[ACK%d]", update);
   return update;
 }
 
@@ -122,9 +121,9 @@ int main(int argc, char **argv) {
 
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(100);
+      usleep(50);
       if(file->size - file->sent < 50)
-        sendData(currentPos), usleep(100);
+        sendData(currentPos), usleep(20);
     }
 
     do {

@@ -22,7 +22,6 @@ int receiveData() {
   if (*head & 0x40000000) {
     if (file == NULL) {
       // process header package
-      printf("[Header]\n");
       size_t file_size = *head & 0x3fffffff;
       file = setupFileReceiver(fileName, file_size);
       // merge chunk buffer
@@ -92,7 +91,7 @@ int sendAck() {
       ERROR();
 
   } else {
-    printf("[l%d,h%d]", file->received_lo, file->received_hi);
+    // printf("[l%d,h%d]", file->received_lo, file->received_hi);
     int ackBase = file->received_lo;
     int ackCount = file->received_hi - file->received_lo;
     size_t size = sizeof(int32_t) + (ackCount - 1) / 8 * sizeof(int8_t) + 1;
