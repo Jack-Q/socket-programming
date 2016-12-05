@@ -35,6 +35,7 @@ int k = 0;
     int32_t *head = (int32_t *)buffer;
     if (*head & 0x40000000) {
       if (file == NULL) {
+        printf("[HEADRCV]");
         // process header package
         size_t file_size = *head & 0x3fffffff;
         file = setupFileReceiver(argv[2], file_size);
