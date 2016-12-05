@@ -83,7 +83,7 @@ int receiveAck(){
         *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
     if ((k >> (i % 8)) & 1) {
       if (file->chunks[ackBase + i].status == FILE_CHUNK_SENT) {
-        file->chunks[i].status = FILE_CHUNK_RECEIVED;
+        file->chunks[ackBase + i].status = FILE_CHUNK_RECEIVED;
         file->sent++;
         update++;
       }
