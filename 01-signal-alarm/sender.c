@@ -70,7 +70,6 @@ int receiveAck(){
     *head &= 0x3fffffff;
   }
 
-  printf("[ACK-PKG]");
   int update = 0;
   for (uint32_t i = 0; i < *head; i++) {
     uint8_t k =
@@ -83,6 +82,8 @@ int receiveAck(){
       }
     }
   }
+
+  printf("[ACK%d]", update);
   return update;
 }
 
@@ -114,7 +115,7 @@ int main(int argc, char **argv) {
   while (1) {
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(100);
+      usleep(1);
     }
 
     if (turn == 1) {

@@ -163,8 +163,9 @@ int main(int argc, char **argv) {
       break;
     }
 
-    if(send_addr_set && ackCount > 100 && ackCount < 0){
+    if(send_addr_set && (ackCount > 50 || ackCount < 0)){
       sendAck();
+      ackCount = 0;
     }
   }
 
