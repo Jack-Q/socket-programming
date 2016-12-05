@@ -18,6 +18,9 @@ int main(int argc, char **argv) {
   struct sockaddr_in recv_addr;
   setupAddr(&recv_addr, argv[1], atoi(argv[2]));
 
+  signal(SIGALRM, SIGALRM_handler);
+  siginterrupt(SIGALRM, 1);
+
   pthread_t fileThread;
   file = setupFileSender(argv[3]);
   if (pthread_create(&fileThread, NULL, &readFile, file) < 0)
@@ -65,9 +68,8 @@ int main(int argc, char **argv) {
     }
     if (sending >= MAX_SENDING || k % 100 == 0) {
       // Wait for a package
-      sighandler_t orig_handler = signal(SIGALRM, SIGALRM_handler);
-      siginterrupt(SIGALRM, 1);
-      alarm(ALARM_DELAY);
+      // alarm(ALARM_DELAY);
+      ualarm(1000*60,0);
       int recv_len = recvfrom(sock_fd, buffer, sizeof(buffer), 0, NULL, 0);
       if (recv_len == -1) {
         if (errno == EINTR)
@@ -76,7 +78,8 @@ int main(int argc, char **argv) {
           ERROR();
       } else {
         // Receive response
-        alarm(0);
+
+        ualarm(0,0);
         // Data format: {HEAD&LEN, BITS}
         uint32_t *head = (uint32_t *)buffer;
         if(*head == 0xffffffff){
@@ -102,7 +105,6 @@ int main(int argc, char **argv) {
         }
         sending = sending / 4 * 3;
       }
-      signal(SIGALRM, orig_handler);
     }
     if (turn == 0)
       continue;

@@ -21,12 +21,17 @@ int main(int argc, char **argv) {
   bzero(&send_addr, sizeof(send_addr));
   socklen_t addrlen = sizeof(send_addr);
 
+
+  signal(SIGALRM, SIGALRM_handler);
+  siginterrupt(SIGALRM, 1);
+
   pthread_t fileThread;
 
   char buffer[BUFFER_RECV];
 int k = 0;
   while (1) {
     k++;
+
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
     if (recv_len == -1ul)
@@ -126,7 +131,7 @@ int k = 0;
     if(file->received == file->size){
       int32_t* fin = (int32_t*) buffer;
       *fin = 0xffffffff;
-      for(int i = 0; i < 3; i++){
+      for(int i = 0; i < 5; i++){
         if (sendto(sock_fd, buffer, sizeof(int32_t), 0, (struct sockaddr *)&send_addr,
                    sizeof(send_addr)) < 0)
           ERROR();
