@@ -34,7 +34,6 @@ int sendData(size_t position){
              sizeof(recv_addr)) == -1)
     ERROR();
   chunk->status = FILE_CHUNK_SENT;
-  printf("[SNT%ld]", position);
   return 0;
 }
 
@@ -132,6 +131,12 @@ int main(int argc, char **argv) {
       }
     }
 
+    if (currentPos < file->read) {
+      sendData(currentPos);
+      usleep(100);
+      if(file->size - file->sent < 50)
+        sendData(currentPos), usleep(100);
+    }
     do {
       currentPos++;
       if(currentPos == file->size){
@@ -140,12 +145,6 @@ int main(int argc, char **argv) {
       }
     } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
 
-    if (currentPos < file->read) {
-      sendData(currentPos);
-      usleep(100);
-      if(file->size - file->sent < 50)
-        sendData(currentPos), usleep(100);
-    }
   }
   pthread_join(fileThread, NULL);
   return 0;
