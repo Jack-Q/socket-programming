@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
         if (currentPos == file->size)
           turn = 1, currentPos = 0;
       }
-      usleep(15000);
+      usleep(1500);
     }
     if (k % (sending >= MAX_SENDING ? 100: 10) == 0 ) {
       // Wait for a package
