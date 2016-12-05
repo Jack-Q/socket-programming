@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
       break;
     }
 
-    if (send_addr_set && (ackCount > (int)(file->size - file->received) + 50 || ackCount < 0)) {
+    if (send_addr_set && (ackCount > (file ? (int)(file->size - file->received) : 0) + 50 || ackCount < 0)) {
       sendAck();
       ackCount = 0;
     }
