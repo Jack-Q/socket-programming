@@ -13,7 +13,7 @@ all: $(SEND) $(RECV)
 	@$(CC) $(CFLAGS) -o $@ $<
 
 test: all | test-dir
-	@dd status=none if=/dev/urandom of=test/input_file bs=5M count=1
+	@dd status=none if=/dev/urandom of=test/input_file bs=5MB count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &
 	@sleep 0.05

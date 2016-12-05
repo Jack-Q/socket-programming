@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
     if (sendto(sock_fd, info, sizeof(info), 0, (struct sockaddr *)&recv_addr,
                sizeof(recv_addr)) == -1)
       ERROR();
+    usleep(1000);
   }
 
   // Send file content
@@ -38,7 +39,9 @@ int main(int argc, char **argv) {
   char buffer[BUFFER_SEND];
   bzero(&buffer, sizeof(buffer));
 
+  int k =0;
   while (file->sent < file->size) {
+    k++;
     if (sending < MAX_SENDING && currentPos < file->read) {
       // Send a package
       FileChunk *chunk = file->chunks + currentPos;
@@ -59,7 +62,8 @@ int main(int argc, char **argv) {
           turn = 1, currentPos = 0;
       }
       usleep(500);
-    } else if (sending >= MAX_SENDING) {
+    }
+    if (sending >= MAX_SENDING || k % 100 == 0) {
       // Wait for a package
       sighandler_t orig_handler = signal(SIGALRM, SIGALRM_handler);
       siginterrupt(SIGALRM, 1);
@@ -84,12 +88,13 @@ int main(int argc, char **argv) {
         } else {
           *head &= 0x3fffffff;
         }
+
+          printf("[ACK-PKG]");
         for (uint32_t i = 0; i < *head; i++) {
           uint8_t k =
               *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
           if ((k >> (i % 8)) & 1) {
             if (file->chunks[i].status == FILE_CHUNK_SENT) {
-              // printf("FILE CHUNK %d ACK\n", i);
               file->chunks[i].status = FILE_CHUNK_RECEIVED;
               file->sent++;
             }
@@ -98,9 +103,6 @@ int main(int argc, char **argv) {
         sending = sending / 4 * 3;
       }
       signal(SIGALRM, orig_handler);
-    } else {
-      // Wait disk read
-      printf("[WARNING] WAITING FOR DISK\n");
     }
     if (turn == 0)
       continue;
@@ -110,5 +112,6 @@ int main(int argc, char **argv) {
         currentPos = currentPos == file->size ? 0 : currentPos;
       } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
   }
+  pthread_join(fileThread, NULL);
   return 0;
 }

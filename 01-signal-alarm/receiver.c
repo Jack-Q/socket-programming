@@ -24,9 +24,9 @@ int main(int argc, char **argv) {
   pthread_t fileThread;
 
   char buffer[BUFFER_RECV];
-
+int k = 0;
   while (1) {
-
+    k++;
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
     if (recv_len == -1ul)
@@ -71,15 +71,18 @@ int main(int argc, char **argv) {
         maxIndex = maxIndex > chunkIndex ? maxIndex : chunkIndex;
       } else {
         // Put data to storage
-        memcpy(file->chunks[chunkIndex].data, buffer + sizeof(int32_t),
-               chunkSize);
-        file->chunks[chunkIndex].size = chunkSize;
-        file->chunks[chunkIndex].status = FILE_CHUNK_RECEIVED;
-        file->received++;
+        printf("[RCV%d]", chunkIndex);
+        if(file->chunks[chunkIndex].status == FILE_CHUNK_UNRECEIVED){
+          memcpy(file->chunks[chunkIndex].data, buffer + sizeof(int32_t),
+                 chunkSize);
+          file->chunks[chunkIndex].size = chunkSize;
+          file->chunks[chunkIndex].status = FILE_CHUNK_RECEIVED;
+          file->received++;
+        }
       }
     }
 
-    if(!file || file->received % 1000 == 0){      
+    if(!file || k % 100 == 0){
       if (file == NULL) {
         size_t size = sizeof(int32_t) + (maxIndex - 1) / 8 * sizeof(int8_t) + 1;
         bzero(buffer, size);
@@ -126,6 +129,7 @@ int main(int argc, char **argv) {
         if (sendto(sock_fd, buffer, sizeof(int32_t), 0, (struct sockaddr *)&send_addr,
                    sizeof(send_addr)) < 0)
           ERROR();
+        usleep(1000);
       }
       // Send multiple finish data
       pthread_join(fileThread, NULL);
