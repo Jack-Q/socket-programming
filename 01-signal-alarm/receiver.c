@@ -9,6 +9,7 @@ int maxIndex = 0;
 FileChunk chunkBuffer[CHUNK_BUFFER_SIZE];
 
 int sock_fd;
+int send_addr_set = 0;
 struct sockaddr_in send_addr;
 pthread_t fileThread;
 char buffer[BUFFER_RECV];
@@ -139,27 +140,30 @@ int main(int argc, char **argv) {
   siginterrupt(SIGALRM, 1);
 
   while (1) {
-    ualarm(1000 * 100, 0);
+    ualarm(1000 * 200, 0);
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
     if (recv_len == -1ul) {
       if (errno != EINTR){
         ERROR();
       }
+      printf("ALARM\n");
     } else {
       ualarm(0, 0);
       receiveData();
+      send_addr_set = 1;
     }
 
-    sendAck();
+    if(send_addr_set){
+      sendAck();
+    }
 
-
-    if (file->received == file->size) {
+    if (file && file->received == file->size) {
       sendFin();
       break;
     }
   }
-
+  
   // Send multiple finish data
   pthread_join(fileThread, NULL);
   return 0;
