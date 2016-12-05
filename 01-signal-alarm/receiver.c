@@ -158,12 +158,12 @@ int main(int argc, char **argv) {
       sendAck();
     }
 
-    if (file && file->received == file->size) {
+    if (file && (file->received == file->size)) {
       sendFin();
       break;
     }
   }
-  
+
   // Send multiple finish data
   pthread_join(fileThread, NULL);
   return 0;
