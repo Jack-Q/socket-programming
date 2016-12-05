@@ -2,7 +2,7 @@
 
 #define BUFFER_RECV 5120
 #define CHUNK_BUFFER_SIZE 1000
-#define SOCKET_OPTION_TIMEOUT_USEC (30 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (20 * 1000)
 
 FileHeaderReceiver *file = NULL;
 int chunkBufferPos = 0;
