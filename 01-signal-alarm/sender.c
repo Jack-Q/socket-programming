@@ -113,7 +113,6 @@ int main(int argc, char **argv) {
 
   int turn = 0;
   while (1) {
-
     if (turn == 1) {
       int status = receiveAck();
       if(status == -1) break; // Finished
@@ -136,6 +135,8 @@ int main(int argc, char **argv) {
 
     if (currentPos < file->read) {
       sendData(currentPos);
+      if(file->size - file->sent < 50)
+        sendData(currentPos);
       usleep(100);
     }
   }
