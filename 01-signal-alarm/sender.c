@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
               *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
           if ((k >> (i % 8)) & 1) {
             if (file->chunks[i].status == FILE_CHUNK_SENT) {
-              printf("FILE CHUNK %d ACK\n", i);
+              // printf("FILE CHUNK %d ACK\n", i);
               file->chunks[i].status = FILE_CHUNK_RECEIVED;
               file->sent++;
             }

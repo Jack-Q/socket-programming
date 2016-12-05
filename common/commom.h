@@ -200,7 +200,7 @@ void *writeFile(void *fileHeader){
       if(errno != EINTR) ERROR();
     }
 
-    printf("Write chunk %ld with size %ld\n", i, file->chunks[i].size);
+    // printf("Write chunk %ld with size %ld\n", i, file->chunks[i].size);
   }
   printf("Write file finish");
   pthread_exit(0);
