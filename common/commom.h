@@ -91,7 +91,7 @@ int setupSocketReceiver(int port) {
   return sock_fd;
 }
 
-#define FILE_CHUNK_SIZE 512
+#define FILE_CHUNK_SIZE 256
 
 #define FILE_CHUNK_UNSENT 0
 #define FILE_CHUNK_SENT 1
