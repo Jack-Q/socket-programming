@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define SOCKET_OPTION_TIMEOUT_USEC (25 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (30 * 1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
