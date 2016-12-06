@@ -25,13 +25,12 @@ test: all | test-dir
 	@echo "#### Test Program 02:select with file size $(FILESIZE) ####"
 	@killall -qw sender time receiver || true
 	@dd status=none if=/dev/urandom of=test/input_file bs=$(FILESIZE) count=1
-	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
-		./receiver 7777 test/output_file &
+	@echo Receiver `time \
+		./receiver 7777 test/output_file `&
 	@sleep 0.05
-	@/usr/bin/time -f"  Sender: %E real, %U user, %S sys." \
-		./sender localhost 7777 test/input_file
-  # Wait server finish
-	@sleep 2
+	@echo Sender `time \
+		./sender localhost 7777 test/input_file`
+	@sleep 1
 	@diff test/input_file test/output_file
 
 clean:
