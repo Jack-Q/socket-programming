@@ -23,10 +23,11 @@ all: $(SEND) $(RECV)
 test: all | test-dir
 	@echo
 	@echo "#### Test Program 03:socket option with file size $(FILESIZE) ####"
+	@killall -qw sender time receiver || true
 	@dd status=none if=/dev/urandom of=test/input_file bs=$(FILESIZE) count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &
-	@sleep 0.05
+	@sleep 0.01
 	@/usr/bin/time -f"  Sender: %E real, %U user, %S sys." \
 		./sender localhost 7777 test/input_file
   # Wait server finish

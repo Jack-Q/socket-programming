@@ -1,7 +1,7 @@
 #include "../common/commom.h"
 
 #define BUFFER_RECV 5120
-#define CHUNK_BUFFER_SIZE 1000
+#define CHUNK_BUFFER_SIZE 1500
 #define SOCKET_OPTION_TIMEOUT_USEC (45 * 1000)
 
 FileHeaderReceiver *file = NULL;

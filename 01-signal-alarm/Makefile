@@ -22,6 +22,7 @@ all: $(SEND) $(RECV)
 test: all | test-dir
 	@echo
 	@echo "#### Test Program 01:alarm with file size $(FILESIZE) ####"
+	@killall -qw sender time receiver || true
 	@dd status=none if=/dev/urandom of=test/input_file bs=$(FILESIZE) count=1
 	@/usr/bin/time -f"Receiver: %E real, %U user, %S sys." \
 		./receiver 7777 test/output_file &

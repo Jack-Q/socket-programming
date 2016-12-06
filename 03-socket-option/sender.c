@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
       usleep(10);
       if(file->size - file->sent < 50)
         sendData(currentPos), usleep(5);
-      if(!headerAck && currentPos % 500 == 0) sendHeader();
+      if(!headerAck && currentPos % 700 == 0) sendHeader();
     }
 
     do {

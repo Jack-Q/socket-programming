@@ -8,6 +8,7 @@ int sock_fd;
 struct sockaddr_in recv_addr;
 pthread_t fileThread;
 char buffer[BUFFER_SEND];
+int headerAck = 0;
 
 int sendHeader() {
   // Send file info (three times)
@@ -65,6 +66,7 @@ int receiveAck(){
     sendHeader();
   } else {
     *head &= 0x3fffffff;
+    headerAck = 1;
   }
   int ackBase = *head >> 16, ackCount = *head & 0xffff;
   int update = 0;
@@ -131,6 +133,7 @@ int main(int argc, char **argv) {
       usleep(50);
       if(file->size - file->sent < 50)
         sendData(currentPos), usleep(20);
+      if(!headerAck && currentPos % 700 == 0) sendHeader();
     }
     do {
       currentPos++;
