@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define SOCKET_OPTION_TIMEOUT_USEC (20 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (10 * 1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(5);
+      usleep(10);
       if(file->size - file->sent < 50)
         sendData(currentPos), usleep(3);
       if(!headerAck && currentPos % 300 == 0) sendHeader(1);
