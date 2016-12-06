@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define SOCKET_OPTION_TIMEOUT_USEC (30 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (25 * 1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
@@ -63,26 +63,48 @@ int receiveAck(){
   }
   int ackBase = *head >> 16, ackCount = *head & 0xffff;
   int update = 0;
-  for(int i = 0; i < ackBase; i++){
-    if(file->chunks[i].status == FILE_CHUNK_SENT) {
-      file->chunks[i].status = FILE_CHUNK_RECEIVED;
-      file->sent++;
-      update++;
+  if(ackBase == 0x3fff){
+    for(size_t i = 0, j = 0; i < file->size; i++){
+      uint16_t *k = (uint16_t *)(buffer + sizeof(int32_t) + j * sizeof(int16_t));
+      if(*k == i){
+        j++;
+        if(file->chunks[i].status == FILE_CHUNK_SENT) {
+          file->chunks[i].status = FILE_CHUNK_RECEIVED;
+          file->sent++;
+          update++;
+        }
+      }else{
+        if(file->chunks[i].status == FILE_CHUNK_SENT) {
+          file->chunks[i].status = FILE_CHUNK_RECEIVED;
+          file->sent++;
+          update++;
+        }
+      }
     }
-  }
-  for (int i = 0; i < ackCount; i++) {
-    uint8_t k =
-        *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
-    if ((k >> (i % 8)) & 1) {
-      if (file->chunks[ackBase + i].status == FILE_CHUNK_SENT) {
-        file->chunks[ackBase + i].status = FILE_CHUNK_RECEIVED;
+    printf("[NEW%d]", update);
+  }else{
+    for(int i = 0; i < ackBase; i++){
+      if(file->chunks[i].status == FILE_CHUNK_SENT) {
+        file->chunks[i].status = FILE_CHUNK_RECEIVED;
         file->sent++;
         update++;
       }
     }
+    for (int i = 0; i < ackCount; i++) {
+      uint8_t k =
+      *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
+      if ((k >> (i % 8)) & 1) {
+        if (file->chunks[ackBase + i].status == FILE_CHUNK_SENT) {
+          file->chunks[ackBase + i].status = FILE_CHUNK_RECEIVED;
+          file->sent++;
+          update++;
+        }
+      }
+    }
+
+    printf("[ACK%d]", update);
   }
 
-  printf("[ACK%d]", update);
   return update;
 }
 

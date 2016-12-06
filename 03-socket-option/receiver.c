@@ -92,25 +92,54 @@ int sendAck() {
 
   } else {
     // printf("[l%d,h%d]", file->received_lo, file->received_hi);
-    int ackBase = file->received_lo;
-    int ackCount = file->received_hi - file->received_lo;
-    size_t size = sizeof(int32_t) + (ackCount - 1) / 8 * sizeof(int8_t) + 1;
-    bzero(buffer, size);
+    if(file->size - file->received < 100 && file->received_hi - file->received_lo > 800){
+      // New schema
+      // [HEAD|LABEL|COUNT][POSITION]
+      int ackCount = file->size - file->received;
+      size_t size = sizeof(int32_t) + (ackCount) * sizeof(int16_t) + 1;
+      bzero(buffer, size);
 
-    int32_t *head = (int32_t *)buffer;
-    *head = ackCount | (ackBase << 16) | 0x40000000;
 
-    for (int i = 0; i * 8 < ackCount; i++) {
-      int8_t *k = (int8_t *)(buffer + sizeof(int32_t) + i * sizeof(int8_t));
-      for (int j = 0; j < 8 && j + i * 8 < ackCount; j++)
-        *k |= file->chunks[ackBase + i * 8 + j].status == FILE_CHUNK_RECEIVED
-                  ? (1 << j)
-                  : 0;
-    }
+      int32_t *head = (int32_t *)buffer;
+      *head = ackCount | (0x3fff << 16) |0x40000000;
 
-    if (sendto(sock_fd, buffer, size, 0, (struct sockaddr *)&send_addr,
-               sizeof(send_addr)) < 0)
+      size_t i,j;
+      for(i = file->received_lo, j = 0; i < file->size; i++){
+        if(file->chunks[i].status == FILE_CHUNK_UNRECEIVED){
+          int16_t *k = (int16_t *)(buffer + sizeof(int32_t) + j * sizeof(int16_t));
+          *k = i;
+          j++;
+        }
+      }
+
+      printf("[NEW,%ld,%d]", j, ackCount);
+
+      if (sendto(sock_fd, buffer, size, 0, (struct sockaddr *)&send_addr,
+      sizeof(send_addr)) < 0)
       ERROR();
+    }else{
+      // Old schema
+      // [HEAD|BASE|SIZE][BIT MAPS]
+      int ackBase = file->received_lo;
+      int ackCount = file->received_hi - file->received_lo;
+      size_t size = sizeof(int32_t) + (ackCount - 1) / 8 * sizeof(int8_t) + 1;
+      bzero(buffer, size);
+
+      int32_t *head = (int32_t *)buffer;
+      *head = ackCount | (ackBase << 16) | 0x40000000;
+
+      for (int i = 0; i * 8 < ackCount; i++) {
+        int8_t *k = (int8_t *)(buffer + sizeof(int32_t) + i * sizeof(int8_t));
+        for (int j = 0; j < 8 && j + i * 8 < ackCount; j++)
+        *k |= file->chunks[ackBase + i * 8 + j].status == FILE_CHUNK_RECEIVED
+        ? (1 << j)
+        : 0;
+      }
+
+      if (sendto(sock_fd, buffer, size, 0, (struct sockaddr *)&send_addr,
+      sizeof(send_addr)) < 0)
+      ERROR();
+    }
   }
   return 0;
 }
