@@ -64,6 +64,16 @@ int setupSocketSender() {
   int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock_fd < 0)
     ERROR();
+  int buf_size = 200 * 1000;
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size)) ==
+      -1) {
+    ERROR();
+  }
+  buf_size = 100 * 1000;
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size)) ==
+      -1) {
+    ERROR();
+  }
   return sock_fd;
 }
 
