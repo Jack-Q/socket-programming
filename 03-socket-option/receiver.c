@@ -1,7 +1,7 @@
 #include "../common/commom.h"
 
 #define BUFFER_RECV 5120
-#define CHUNK_BUFFER_SIZE 1500
+#define CHUNK_BUFFER_SIZE 1200
 #define SOCKET_OPTION_TIMEOUT_USEC (45 * 1000)
 
 FileHeaderReceiver *file = NULL;
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
       break;
     }
 
-    if (send_addr_set && (ackCount > (file ? (int)(file->size - file->received) : 0) + 50 || ackCount < 0)) {
+    if (send_addr_set && (ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 || ackCount < 0)) {
       sendAck();
       ackCount = 0;
     }

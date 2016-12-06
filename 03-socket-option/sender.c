@@ -10,10 +10,10 @@ pthread_t fileThread;
 char buffer[BUFFER_SEND];
 int headerAck = 0;
 
-int sendHeader() {
+int sendHeader(int times) {
   // Send file info (three times)
   int32_t info[1] = {(int32_t)0x40000000 | (int32_t)file->size};
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < times; i++) {
     if (sendto(sock_fd, info, sizeof(info), 0, (struct sockaddr *)&recv_addr,
                sizeof(recv_addr)) == -1)
       ERROR();
@@ -56,7 +56,7 @@ int receiveAck(){
 
   if (!(*head & 0x40000000)) {
     printf("header lost, resend header");
-    sendHeader();
+    sendHeader(2);
   } else {
     headerAck = 1;
     *head &= 0x3fffffff;
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   if (pthread_create(&fileThread, NULL, &readFile, file) < 0)
     ERROR();
 
-  sendHeader();
+  sendHeader(2);
 
   // Send file content
   size_t currentPos = 0;
@@ -124,10 +124,10 @@ int main(int argc, char **argv) {
 
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(10);
+      usleep(5);
       if(file->size - file->sent < 50)
-        sendData(currentPos), usleep(5);
-      if(!headerAck && currentPos % 700 == 0) sendHeader();
+        sendData(currentPos), usleep(3);
+      if(!headerAck && currentPos % 300 == 0) sendHeader(1);
     }
 
     do {
