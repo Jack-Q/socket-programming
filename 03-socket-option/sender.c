@@ -8,15 +8,16 @@ int sock_fd;
 struct sockaddr_in recv_addr;
 pthread_t fileThread;
 char buffer[BUFFER_SEND];
+int headerAck = 0;
 
 int sendHeader() {
   // Send file info (three times)
   int32_t info[1] = {(int32_t)0x40000000 | (int32_t)file->size};
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 2; i++) {
     if (sendto(sock_fd, info, sizeof(info), 0, (struct sockaddr *)&recv_addr,
                sizeof(recv_addr)) == -1)
       ERROR();
-    usleep(30);
+    usleep(5);
   }
   return 0;
 }
@@ -57,6 +58,7 @@ int receiveAck(){
     printf("header lost, resend header");
     sendHeader();
   } else {
+    headerAck = 1;
     *head &= 0x3fffffff;
   }
   int ackBase = *head >> 16, ackCount = *head & 0xffff;
@@ -124,7 +126,8 @@ int main(int argc, char **argv) {
       sendData(currentPos);
       usleep(10);
       if(file->size - file->sent < 50)
-        sendData(currentPos), usleep(10);
+        sendData(currentPos), usleep(5);
+      if(!headerAck && currentPos % 500 == 0) sendHeader();
     }
 
     do {
