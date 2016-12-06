@@ -67,12 +67,8 @@ int receiveAck(){
     for(size_t i = 0, j = 0; i < file->size; i++){
       uint16_t *k = (uint16_t *)(buffer + sizeof(int32_t) + j * sizeof(int16_t));
       if(*k == i){
+        // Ignore this index since this is not received
         j++;
-        if(file->chunks[i].status == FILE_CHUNK_SENT) {
-          file->chunks[i].status = FILE_CHUNK_RECEIVED;
-          file->sent++;
-          update++;
-        }
       }else{
         if(file->chunks[i].status == FILE_CHUNK_SENT) {
           file->chunks[i].status = FILE_CHUNK_RECEIVED;

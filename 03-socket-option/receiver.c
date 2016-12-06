@@ -96,7 +96,7 @@ int sendAck() {
       // New schema
       // [HEAD|LABEL|COUNT][POSITION]
       int ackCount = file->size - file->received;
-      size_t size = sizeof(int32_t) + (ackCount) * sizeof(int16_t) + 1;
+      size_t size = sizeof(int32_t) + (ackCount) * sizeof(int16_t);
       bzero(buffer, size);
 
 
