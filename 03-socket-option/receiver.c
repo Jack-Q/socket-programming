@@ -2,7 +2,7 @@
 
 #define BUFFER_RECV 5120
 #define CHUNK_BUFFER_SIZE 1200
-#define SOCKET_OPTION_TIMEOUT_USEC (45 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (15 * 1000)
 
 FileHeaderReceiver *file = NULL;
 int chunkBufferPos = 0;
@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
 
 
   int ackCount = 0;
+  int lastSend = 0;
   while (1) {
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
@@ -182,7 +183,7 @@ int main(int argc, char **argv) {
       }
       // Timeout
       printf("[RECV_TIMEOUT]");
-      ackCount = -1;
+      lastSend -= 60;
     } else {
       receiveData();
       send_addr_set = 1;
@@ -196,10 +197,15 @@ int main(int argc, char **argv) {
       sendFin();
       break;
     }
-
-    if (send_addr_set && (ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 || ackCount < 0)) {
+    if(file && (file->size - file->received < 200)){
+      lastSend -= 40 - (file->size - file->received) / 5;
+    }
+    if (send_addr_set && (
+      ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 
+      || lastSend < 0)) {
       sendAck();
       ackCount = 0;
+      lastSend = 150;
     }
   }
 
