@@ -22,7 +22,9 @@ int sendHeader(int times) {
   return 0;
 }
 
+int dataCount = 0;
 int sendData(size_t position){
+  dataCount ++;
   // Send a package
   FileChunk *chunk = file->chunks + position;
   size_t buf = sizeof(int32_t) + chunk->size;
@@ -158,5 +160,9 @@ int main(int argc, char **argv) {
 
   }
   pthread_join(fileThread, NULL);
+
+  printf("data count: %d * %d = %d\n", dataCount, FILE_CHUNK_SIZE, dataCount * FILE_CHUNK_SIZE);
+  printf("required:   %d * %d = %d (%.2f%%)\n", (int)file->size, FILE_CHUNK_SIZE,
+    (int)file->size * FILE_CHUNK_SIZE, dataCount * 100.0f / file->size);
   return 0;
 }
