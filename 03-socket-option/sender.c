@@ -190,6 +190,7 @@ int main(int argc, char **argv) {
     } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
 
   }
+  
   pthread_join(fileThread, NULL);
 
   printf("data count: %d * %d = %d\n", dataCount, FILE_CHUNK_SIZE, dataCount * FILE_CHUNK_SIZE);
