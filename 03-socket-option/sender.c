@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define SOCKET_OPTION_TIMEOUT_USEC (15 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (10 * 1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
@@ -106,6 +106,15 @@ int receiveAck(){
   return update;
 }
 
+int nxtPosition(int current){
+  if(file->chunks[current].status != FILE_CHUNK_RECEIVED) return current;
+  int currentPos;
+  for(currentPos = (current+1) % file->size;
+            file->chunks[currentPos].status == FILE_CHUNK_RECEIVED && current != currentPos; 
+            currentPos = (currentPos+1)%file->size);
+  return currentPos;
+}
+
 int main(int argc, char **argv) {
   // argv: prog_name, host, port, fname
   if (argc != 4) {
@@ -136,7 +145,7 @@ int main(int argc, char **argv) {
       int status = receiveAck();
       if(status == -1) break; // Finished
       else if(status == -2){
-        if(timeouts > (acks > 0 ? 6 : 9)){
+        if(timeouts > 3){
           turn = 0;// Out of time
           acks = 0;
           timeouts = 0;
@@ -144,22 +153,19 @@ int main(int argc, char **argv) {
           timeouts++;
         }
       } else {
+        timeouts = 0;
+        // updated count
+        if(file->sent == file->size)
+          break;
         if(acks < 10){
-          // updated count
-          if(file->sent == file->size)
-            break;
           acks++;
-          timeouts = 0;
-          continue;
         }else{
-          timeouts = 0;
           acks = 0;
           turn = 0;
-          for(currentPos = 0;
-            file->chunks[currentPos].status == FILE_CHUNK_RECEIVED; 
-            currentPos++);
         }
       }
+
+      currentPos = nxtPosition(currentPos);
     }
 
 
@@ -171,7 +177,7 @@ int main(int argc, char **argv) {
       if(!headerAck && currentPos % 300 == 0) sendHeader(1);
     }
 
-    if((dataCount + 200) % 600 == 0){
+    if(dataCount > 500 && dataCount % 500 == 0){
       if(receiveAck() == -1) break;
     }
 
