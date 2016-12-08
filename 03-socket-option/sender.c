@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
         // updated count
         if(file->sent == file->size)
           break;
-        if(acks < 10){
+        if(acks < 5){
           acks++;
         }else{
           acks = 0;
