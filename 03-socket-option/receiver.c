@@ -174,6 +174,7 @@ int main(int argc, char **argv) {
 
   int ackCount = 0;
   int lastSend = 0;
+  int lastRecv = 0;
   while (1) {
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
@@ -183,7 +184,7 @@ int main(int argc, char **argv) {
       }
       // Timeout
       printf("[RECV_TIMEOUT]");
-      lastSend -= 60;
+      lastSend -= 100;
     } else {
       receiveData();
       send_addr_set = 1;
@@ -198,14 +199,18 @@ int main(int argc, char **argv) {
       break;
     }
     if(file && (file->size - file->received < 200)){
-      lastSend -= 40 - (file->size - file->received) / 5;
+      lastSend -= 20 - (file->size - file->received) / 10;
+    }
+    if(file && (file->received - lastRecv > 800)){
+      lastSend = -1;
     }
     if (send_addr_set && (
       ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 
       || lastSend < 0)) {
       sendAck();
       ackCount = 0;
-      lastSend = 150;
+      lastSend = 300;
+      lastRecv = file->received;
     }
   }
 
