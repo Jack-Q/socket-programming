@@ -17,6 +17,7 @@ char buffer[BUFFER_RECV];
 
 char *fileName;
 
+int received = 0;
 int receiveData() {
   int32_t *head = (int32_t *)buffer;
   if (*head & 0x40000000) {
@@ -45,6 +46,9 @@ int receiveData() {
   } else {
     size_t chunkSize = *head >> 16;
     int chunkIndex = *head & 0xffff;
+
+    received++;
+
     if (file == NULL) {
       // Place items to buffer first
       if (chunkBufferPos >= CHUNK_BUFFER_SIZE)
@@ -216,5 +220,6 @@ int main(int argc, char **argv) {
 
   // Send multiple finish data
   pthread_join(fileThread, NULL);
+  printf("\n[RCV%.2f]\n", file ? 100.0f * received / file->size : 0);
   return 0;
 }

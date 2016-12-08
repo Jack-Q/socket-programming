@@ -139,6 +139,7 @@ int main(int argc, char **argv) {
         if(acks > 0 || timeouts > 5){
           turn = 0;// Out of time
           acks = 0;
+          timeouts = 0;
         }else{
           timeouts++;
         }
