@@ -1,3 +1,10 @@
+/**************************************
+ * Network Programming Homework II
+ *  Jack Q (0540017) qiaobo@outlook.com
+ ****************************************/
+
+
+
 #include "../common/commom.h"
 
 #define BUFFER_RECV 5120
@@ -7,7 +14,7 @@
 FileHeaderReceiver *file = NULL;
 int chunkBufferPos = 0;
 int maxIndex = 0;
-FileChunk* chunkBuffer[CHUNK_BUFFER_SIZE];
+FileChunk *chunkBuffer[CHUNK_BUFFER_SIZE];
 
 int sock_fd;
 int send_addr_set = 0;
@@ -53,7 +60,7 @@ int receiveData() {
       // Place items to buffer first
       if (chunkBufferPos >= CHUNK_BUFFER_SIZE)
         printf("CHUNK_BUFFER_OVERFLOW"), ERROR();
-      chunkBuffer[chunkBufferPos] = (FileChunk *) malloc(sizeof(FileChunk));
+      chunkBuffer[chunkBufferPos] = (FileChunk *)malloc(sizeof(FileChunk));
       chunkBuffer[chunkBufferPos]->size = chunkSize;
       chunkBuffer[chunkBufferPos]->index = chunkIndex;
       memcpy(chunkBuffer[chunkBufferPos]->data, buffer + sizeof(int32_t),
@@ -96,32 +103,35 @@ int sendAck() {
 
   } else {
     // printf("[l%d,h%d]", file->received_lo, file->received_hi);
-    if(file->size - file->received < 100 && file->received_hi - file->received_lo > 800){
+    if (file->size - file->received < 100 &&
+        file->received_hi - file->received_lo > 800) {
       // New schema
       // [HEAD|LABEL|COUNT][POSITION]
       int ackCount = file->size - file->received;
       size_t size = sizeof(int32_t) + (ackCount) * sizeof(int16_t);
       bzero(buffer, size);
 
-
       int32_t *head = (int32_t *)buffer;
-      *head = ackCount | (0x3fff << 16) |0x40000000;
+      *head = ackCount | (0x3fff << 16) | 0x40000000;
 
-      size_t i,j;
-      for(i = file->received_lo, j = 0; i < file->size; i++){
-        if(file->chunks[i].status == FILE_CHUNK_UNRECEIVED){
-          int16_t *k = (int16_t *)(buffer + sizeof(int32_t) + j * sizeof(int16_t));
+      size_t i, j;
+      for (i = file->received_lo, j = 0; i < file->size; i++) {
+        if (file->chunks[i].status == FILE_CHUNK_UNRECEIVED) {
+          int16_t *k =
+              (int16_t *)(buffer + sizeof(int32_t) + j * sizeof(int16_t));
           *k = i;
           j++;
         }
       }
 
+#ifdef DEBUG
       printf("[NEW,%ld,%d]", j, ackCount);
+#endif
 
       if (sendto(sock_fd, buffer, size, 0, (struct sockaddr *)&send_addr,
-      sizeof(send_addr)) < 0)
-      ERROR();
-    }else{
+                 sizeof(send_addr)) < 0)
+        ERROR();
+    } else {
       // Old schema
       // [HEAD|BASE|SIZE][BIT MAPS]
       int ackBase = file->received_lo;
@@ -135,14 +145,14 @@ int sendAck() {
       for (int i = 0; i * 8 < ackCount; i++) {
         int8_t *k = (int8_t *)(buffer + sizeof(int32_t) + i * sizeof(int8_t));
         for (int j = 0; j < 8 && j + i * 8 < ackCount; j++)
-        *k |= file->chunks[ackBase + i * 8 + j].status == FILE_CHUNK_RECEIVED
-        ? (1 << j)
-        : 0;
+          *k |= file->chunks[ackBase + i * 8 + j].status == FILE_CHUNK_RECEIVED
+                    ? (1 << j)
+                    : 0;
       }
 
       if (sendto(sock_fd, buffer, size, 0, (struct sockaddr *)&send_addr,
-      sizeof(send_addr)) < 0)
-      ERROR();
+                 sizeof(send_addr)) < 0)
+        ERROR();
     }
   }
   return 0;
@@ -170,11 +180,12 @@ int main(int argc, char **argv) {
 
   sock_fd = setupSocketReceiver(atoi(argv[1]));
   struct timeval timeout = {0, SOCKET_OPTION_TIMEOUT_USEC};
-  if(setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) ERROR();
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) ==
+      -1)
+    ERROR();
 
   bzero(&send_addr, sizeof(send_addr));
   socklen_t addrlen = sizeof(send_addr);
-
 
   int ackCount = 0;
   int lastSend = 0;
@@ -186,34 +197,37 @@ int main(int argc, char **argv) {
       if (errno != EWOULDBLOCK) {
         ERROR();
       }
+
+#ifdef DEBUG
       // Timeout
       printf("[RECV_TIMEOUT]");
+#endif
       lastSend -= 100;
     } else {
       receiveData();
-      if(!send_addr_set){
-        send_addr_set = 1; 
+      if (!send_addr_set) {
+        send_addr_set = 1;
         lastSend = 300;
       }
       if (ackCount >= 0)
         ackCount++;
       else
-        ackCount=0;
+        ackCount = 0;
     }
 
-    if(file && (file->received == file->size)) {
+    if (file && (file->received == file->size)) {
       sendFin();
       break;
     }
-    if(file && (file->size - file->received < 200)){
+    if (file && (file->size - file->received < 200)) {
       lastSend -= 20 - (file->size - file->received) / 10;
     }
-    if(file && (file->received - lastRecv > 600)){
+    if (file && (file->received - lastRecv > 600)) {
       lastSend = -1;
     }
-    if (send_addr_set && (
-      ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 
-      || lastSend < 0)) {
+    if (send_addr_set &&
+        (ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 ||
+         lastSend < 0)) {
       sendAck();
       ackCount = 0;
       lastSend = 300;
@@ -223,6 +237,9 @@ int main(int argc, char **argv) {
 
   // Send multiple finish data
   pthread_join(fileThread, NULL);
+
+#ifdef DEBUG
   printf("\n[RCV%.2f]\n", file ? 100.0f * received / file->size : 0);
+#endif
   return 0;
 }

@@ -1,3 +1,9 @@
+/**************************************
+ * Network Programming Homework II
+ *  Jack Q (0540017) qiaobo@outlook.com
+ ****************************************/
+
+
 #include "../common/commom.h"
 
 #define SOCKET_OPTION_TIMEOUT_USEC (10 * 1000)
@@ -23,8 +29,8 @@ int sendHeader(int times) {
 }
 
 int dataCount = 0;
-int sendData(size_t position){
-  dataCount ++;
+int sendData(size_t position) {
+  dataCount++;
   // Send a package
   FileChunk *chunk = file->chunks + position;
   size_t buf = sizeof(int32_t) + chunk->size;
@@ -39,14 +45,17 @@ int sendData(size_t position){
   return 0;
 }
 
-int receiveAck(){
+int receiveAck() {
   int recv_len = recvfrom(sock_fd, buffer, sizeof(buffer), 0, NULL, 0);
 
   if (recv_len == -1) {
     if (errno != EWOULDBLOCK)
       ERROR();
+
+#ifdef DEBUG
     // Timeout
     printf("[SENDER_TIMOUT]\n");
+#endif
     return -2;
   }
 
@@ -57,7 +66,10 @@ int receiveAck(){
   }
 
   if (!(*head & 0x40000000)) {
+
+#ifdef DEBUG
     printf("header lost, resend header");
+#endif
     sendHeader(2);
   } else {
     headerAck = 1;
@@ -65,24 +77,28 @@ int receiveAck(){
   }
   int ackBase = *head >> 16, ackCount = *head & 0xffff;
   int update = 0;
-  if(ackBase == 0x3fff){
-    for(size_t i = 0, j = 0; i < file->size; i++){
-      uint16_t *k = (uint16_t *)(buffer + sizeof(int32_t) + j * sizeof(int16_t));
-      if(*k == i){
+  if (ackBase == 0x3fff) {
+    for (size_t i = 0, j = 0; i < file->size; i++) {
+      uint16_t *k =
+          (uint16_t *)(buffer + sizeof(int32_t) + j * sizeof(int16_t));
+      if (*k == i) {
         // Ignore this index since this is not received
         j++;
-      }else{
-        if(file->chunks[i].status == FILE_CHUNK_SENT) {
+      } else {
+        if (file->chunks[i].status == FILE_CHUNK_SENT) {
           file->chunks[i].status = FILE_CHUNK_RECEIVED;
           file->sent++;
           update++;
         }
       }
     }
+
+#ifdef DEBUG
     printf("[NEW%d]", update);
-  }else{
-    for(int i = 0; i < ackBase; i++){
-      if(file->chunks[i].status == FILE_CHUNK_SENT) {
+#endif
+  } else {
+    for (int i = 0; i < ackBase; i++) {
+      if (file->chunks[i].status == FILE_CHUNK_SENT) {
         file->chunks[i].status = FILE_CHUNK_RECEIVED;
         file->sent++;
         update++;
@@ -90,7 +106,7 @@ int receiveAck(){
     }
     for (int i = 0; i < ackCount; i++) {
       uint8_t k =
-      *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
+          *(int8_t *)(buffer + sizeof(int32_t) + i / 8 * sizeof(int8_t));
       if ((k >> (i % 8)) & 1) {
         if (file->chunks[ackBase + i].status == FILE_CHUNK_SENT) {
           file->chunks[ackBase + i].status = FILE_CHUNK_RECEIVED;
@@ -100,18 +116,23 @@ int receiveAck(){
       }
     }
 
+#ifdef DEBUG
     printf("[ACK%d]", update);
+#endif
   }
 
   return update;
 }
 
-int nxtPosition(int current){
-  if(file->chunks[current].status != FILE_CHUNK_RECEIVED) return current;
+int nxtPosition(int current) {
+  if (file->chunks[current].status != FILE_CHUNK_RECEIVED)
+    return current;
   int currentPos;
-  for(currentPos = (current+1) % file->size;
-            file->chunks[currentPos].status == FILE_CHUNK_RECEIVED && current != currentPos; 
-            currentPos = (currentPos+1)%file->size);
+  for (currentPos = (current + 1) % file->size;
+       file->chunks[currentPos].status == FILE_CHUNK_RECEIVED &&
+       current != currentPos;
+       currentPos = (currentPos + 1) % file->size)
+    ;
   return currentPos;
 }
 
@@ -125,7 +146,9 @@ int main(int argc, char **argv) {
   // Setup connection structure
   sock_fd = setupSocketSender();
   struct timeval timeout = {0, SOCKET_OPTION_TIMEOUT_USEC};
-  if(setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) ERROR();
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) ==
+      -1)
+    ERROR();
   setupAddr(&recv_addr, argv[1], atoi(argv[2]));
 
   file = setupFileSender(argv[3]);
@@ -143,23 +166,24 @@ int main(int argc, char **argv) {
   while (1) {
     if (turn == 1) {
       int status = receiveAck();
-      if(status == -1) break; // Finished
-      else if(status == -2){
-        if(timeouts > 3){
-          turn = 0;// Out of time
+      if (status == -1)
+        break; // Finished
+      else if (status == -2) {
+        if (timeouts > 3) {
+          turn = 0; // Out of time
           acks = 0;
           timeouts = 0;
-        }else{
+        } else {
           timeouts++;
         }
       } else {
         timeouts = 0;
         // updated count
-        if(file->sent == file->size)
+        if (file->sent == file->size)
           break;
-        if(acks < 5){
+        if (acks < 5) {
           acks++;
-        }else{
+        } else {
           acks = 0;
           turn = 0;
         }
@@ -168,33 +192,37 @@ int main(int argc, char **argv) {
       currentPos = nxtPosition(currentPos);
     }
 
-
     if (currentPos < file->read) {
       sendData(currentPos);
       usleep(15);
-      if(file->size - file->sent < 20)
+      if (file->size - file->sent < 20)
         sendData(currentPos), usleep(3);
-      if(!headerAck && currentPos % 300 == 0) sendHeader(1);
+      if (!headerAck && currentPos % 300 == 0)
+        sendHeader(1);
     }
 
-    if(dataCount > 500 && dataCount % 500 == 0){
-      if(receiveAck() == -1) break;
+    if (dataCount > 500 && dataCount % 500 == 0) {
+      if (receiveAck() == -1)
+        break;
     }
 
     do {
       currentPos++;
-      if(currentPos == file->size){
+      if (currentPos == file->size) {
         turn = 1;
         currentPos = 0;
       }
     } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
-
   }
-  
+
   pthread_join(fileThread, NULL);
 
-  printf("data count: %d * %d = %d\n", dataCount, FILE_CHUNK_SIZE, dataCount * FILE_CHUNK_SIZE);
-  printf("required:   %d * %d = %d (%.2f%%)\n", (int)file->size, FILE_CHUNK_SIZE,
-    (int)file->size * FILE_CHUNK_SIZE, dataCount * 100.0f / file->size);
+#ifdef DEBUG
+  printf("data count: %d * %d = %d\n", dataCount, FILE_CHUNK_SIZE,
+         dataCount * FILE_CHUNK_SIZE);
+  printf("required:   %d * %d = %d (%.2f%%)\n", (int)file->size,
+         FILE_CHUNK_SIZE, (int)file->size * FILE_CHUNK_SIZE,
+         dataCount * 100.0f / file->size);
+#endif
   return 0;
 }

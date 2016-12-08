@@ -1,3 +1,8 @@
+/**************************************
+ * Network Programming Homework II
+ *  Jack Q (0540017) qiaobo@outlook.com
+ ****************************************/
+
 #include "../common/commom.h"
 
 #define BUFFER_RECV 5120

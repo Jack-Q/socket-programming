@@ -1,3 +1,8 @@
+/**************************************
+ * Network Programming Homework II
+ *  Jack Q (0540017) qiaobo@outlook.com
+ ****************************************/
+
 #include "../common/commom.h"
 
 #define ALARM_DELAY 1
@@ -147,8 +152,10 @@ int main(int argc, char **argv) {
 
   }
   pthread_join(fileThread, NULL);
+  #ifdef DEBUG
   printf("data count: %d * %d = %d\n", dataCount, FILE_CHUNK_SIZE, dataCount * FILE_CHUNK_SIZE);
   printf("required:   %d * %d = %d (%.2f%%)\n", (int)file->size, FILE_CHUNK_SIZE,
     (int)file->size * FILE_CHUNK_SIZE, dataCount * 100.0f / file->size);
+ #endif
   return 0;
 }

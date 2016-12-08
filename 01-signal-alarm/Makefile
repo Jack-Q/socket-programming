@@ -23,7 +23,6 @@ test: all
 	@echo
 	@echo "#### Test Program 01:alarm with file size $(FILESIZE) ####"
 	@mkdir -p test
-	@killall -qw sender time receiver || true
 	@dd status=none if=/dev/urandom of=test/input_file bs=$(FILESIZE) count=1
 	@echo Receiver `time \
 		./receiver 7777 test/output_file `&

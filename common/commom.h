@@ -1,3 +1,10 @@
+/**************************************
+ * Network Programming Homework II
+ *  Jack Q (0540017) qiaobo@outlook.com
+ ****************************************/
+
+
+
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
