@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
         ackCount=0;
     }
 
-    if (file && (file->received == file->size)) {
+    if(file && (file->received == file->size)) {
       sendFin();
       break;
     }
@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
       sendAck();
       ackCount = 0;
       lastSend = 300;
-      lastRecv = file->received;
+      lastRecv = file ? file->received : 0;
     }
   }
 
