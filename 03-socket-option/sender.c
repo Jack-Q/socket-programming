@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define SOCKET_OPTION_TIMEOUT_USEC (25 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (15 * 1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
       int status = receiveAck();
       if(status == -1) break; // Finished
       else if(status == -2){
-        if(timeouts > (acks > 0 ? 4 : 8)){
+        if(timeouts > (acks > 0 ? 6 : 9)){
           turn = 0;// Out of time
           acks = 0;
           timeouts = 0;
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
           timeouts++;
         }
       } else {
-        if(acks < 15){
+        if(acks < 10){
           // updated count
           if(file->sent == file->size)
             break;
@@ -162,9 +162,6 @@ int main(int argc, char **argv) {
       }
     }
 
-    if(dataCount % 400 == 0){
-      if(receiveAck() == -1) break;
-    }
 
     if (currentPos < file->read) {
       sendData(currentPos);
@@ -172,6 +169,10 @@ int main(int argc, char **argv) {
       if(file->size - file->sent < 20)
         sendData(currentPos), usleep(3);
       if(!headerAck && currentPos % 300 == 0) sendHeader(1);
+    }
+
+    if((dataCount + 200) % 600 == 0){
+      if(receiveAck() == -1) break;
     }
 
     do {

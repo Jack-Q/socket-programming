@@ -191,7 +191,10 @@ int main(int argc, char **argv) {
       lastSend -= 100;
     } else {
       receiveData();
-      send_addr_set = 1;
+      if(!send_addr_set){
+        send_addr_set = 1; 
+        lastSend = 300;
+      }
       if (ackCount >= 0)
         ackCount++;
       else
