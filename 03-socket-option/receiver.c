@@ -2,7 +2,7 @@
 
 #define BUFFER_RECV 5120
 #define CHUNK_BUFFER_SIZE 1200
-#define SOCKET_OPTION_TIMEOUT_USEC (45 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (15 * 1000)
 
 FileHeaderReceiver *file = NULL;
 int chunkBufferPos = 0;
@@ -17,6 +17,7 @@ char buffer[BUFFER_RECV];
 
 char *fileName;
 
+int received = 0;
 int receiveData() {
   int32_t *head = (int32_t *)buffer;
   if (*head & 0x40000000) {
@@ -45,6 +46,9 @@ int receiveData() {
   } else {
     size_t chunkSize = *head >> 16;
     int chunkIndex = *head & 0xffff;
+
+    received++;
+
     if (file == NULL) {
       // Place items to buffer first
       if (chunkBufferPos >= CHUNK_BUFFER_SIZE)
@@ -173,6 +177,8 @@ int main(int argc, char **argv) {
 
 
   int ackCount = 0;
+  int lastSend = 0;
+  int lastRecv = 0;
   while (1) {
     size_t recv_len = recvfrom(sock_fd, (void *)buffer, sizeof(buffer), 0,
                                (struct sockaddr *)&send_addr, &addrlen);
@@ -182,28 +188,41 @@ int main(int argc, char **argv) {
       }
       // Timeout
       printf("[RECV_TIMEOUT]");
-      ackCount = -1;
+      lastSend -= 100;
     } else {
       receiveData();
-      send_addr_set = 1;
+      if(!send_addr_set){
+        send_addr_set = 1; 
+        lastSend = 300;
+      }
       if (ackCount >= 0)
         ackCount++;
       else
         ackCount=0;
     }
 
-    if (file && (file->received == file->size)) {
+    if(file && (file->received == file->size)) {
       sendFin();
       break;
     }
-
-    if (send_addr_set && (ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 || ackCount < 0)) {
+    if(file && (file->size - file->received < 200)){
+      lastSend -= 20 - (file->size - file->received) / 10;
+    }
+    if(file && (file->received - lastRecv > 600)){
+      lastSend = -1;
+    }
+    if (send_addr_set && (
+      ackCount > (file ? (int)(file->size - file->received) * 2 : 0) + 50 
+      || lastSend < 0)) {
       sendAck();
       ackCount = 0;
+      lastSend = 300;
+      lastRecv = file ? file->received : 0;
     }
   }
 
   // Send multiple finish data
   pthread_join(fileThread, NULL);
+  printf("\n[RCV%.2f]\n", file ? 100.0f * received / file->size : 0);
   return 0;
 }

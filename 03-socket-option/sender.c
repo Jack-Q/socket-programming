@@ -1,6 +1,6 @@
 #include "../common/commom.h"
 
-#define SOCKET_OPTION_TIMEOUT_USEC (25 * 1000)
+#define SOCKET_OPTION_TIMEOUT_USEC (10 * 1000)
 #define BUFFER_SEND 5120
 
 FileHeaderSender *file = NULL;
@@ -22,7 +22,9 @@ int sendHeader(int times) {
   return 0;
 }
 
+int dataCount = 0;
 int sendData(size_t position){
+  dataCount ++;
   // Send a package
   FileChunk *chunk = file->chunks + position;
   size_t buf = sizeof(int32_t) + chunk->size;
@@ -104,6 +106,15 @@ int receiveAck(){
   return update;
 }
 
+int nxtPosition(int current){
+  if(file->chunks[current].status != FILE_CHUNK_RECEIVED) return current;
+  int currentPos;
+  for(currentPos = (current+1) % file->size;
+            file->chunks[currentPos].status == FILE_CHUNK_RECEIVED && current != currentPos; 
+            currentPos = (currentPos+1)%file->size);
+  return currentPos;
+}
+
 int main(int argc, char **argv) {
   // argv: prog_name, host, port, fname
   if (argc != 4) {
@@ -127,25 +138,47 @@ int main(int argc, char **argv) {
   size_t currentPos = 0;
 
   int turn = 0;
+  int acks = 1;
+  int timeouts = 0;
   while (1) {
     if (turn == 1) {
       int status = receiveAck();
       if(status == -1) break; // Finished
-      else if(status == -2) turn = 0;// Out of time
-      else {
+      else if(status == -2){
+        if(timeouts > 3){
+          turn = 0;// Out of time
+          acks = 0;
+          timeouts = 0;
+        }else{
+          timeouts++;
+        }
+      } else {
+        timeouts = 0;
         // updated count
         if(file->sent == file->size)
           break;
-        continue;
+        if(acks < 5){
+          acks++;
+        }else{
+          acks = 0;
+          turn = 0;
+        }
       }
+
+      currentPos = nxtPosition(currentPos);
     }
+
 
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(10);
-      if(file->size - file->sent < 50)
+      usleep(15);
+      if(file->size - file->sent < 20)
         sendData(currentPos), usleep(3);
       if(!headerAck && currentPos % 300 == 0) sendHeader(1);
+    }
+
+    if(dataCount > 500 && dataCount % 500 == 0){
+      if(receiveAck() == -1) break;
     }
 
     do {
@@ -157,6 +190,11 @@ int main(int argc, char **argv) {
     } while (file->chunks[currentPos].status == FILE_CHUNK_RECEIVED);
 
   }
+  
   pthread_join(fileThread, NULL);
+
+  printf("data count: %d * %d = %d\n", dataCount, FILE_CHUNK_SIZE, dataCount * FILE_CHUNK_SIZE);
+  printf("required:   %d * %d = %d (%.2f%%)\n", (int)file->size, FILE_CHUNK_SIZE,
+    (int)file->size * FILE_CHUNK_SIZE, dataCount * 100.0f / file->size);
   return 0;
 }
