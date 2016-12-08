@@ -9,7 +9,7 @@ CFLAGS=-std=c99 -Wall -g -D_DEFAULT_SOURCE -O3 -DDEBUG -pthread
 TEST=./test
 SHELL=/bin/bash
 
-FILESIZE=5MB
+FILESIZE=5M
 
 SEND=sender
 RECV=receiver

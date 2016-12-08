@@ -11,7 +11,7 @@ PROG_01_DIR=01-signal-alarm
 PROG_02_DIR=02-select
 PROG_03_DIR=03-socket-option
 
-FILESIZE=5MB
+FILESIZE=5M
 
 .PHONY: all Program-01 Program-02 Program-03 clean test
 all: Program-01 Program-02 Program-03
