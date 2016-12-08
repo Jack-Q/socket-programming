@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
       int status = receiveAck();
       if(status == -1) break; // Finished
       else if(status == -2){
-        if(acks > 0 || timeouts > 5){
+        if(timeouts > (acks > 0 ? 4 : 8)){
           turn = 0;// Out of time
           acks = 0;
           timeouts = 0;
@@ -144,18 +144,32 @@ int main(int argc, char **argv) {
           timeouts++;
         }
       } else {
-        // updated count
-        if(file->sent == file->size)
-          break;
-        acks++;
-        continue;
+        if(acks < 15){
+          // updated count
+          if(file->sent == file->size)
+            break;
+          acks++;
+          timeouts = 0;
+          continue;
+        }else{
+          timeouts = 0;
+          acks = 0;
+          turn = 0;
+          for(currentPos = 0;
+            file->chunks[currentPos].status == FILE_CHUNK_RECEIVED; 
+            currentPos++);
+        }
       }
+    }
+
+    if(dataCount % 400 == 0){
+      if(receiveAck() == -1) break;
     }
 
     if (currentPos < file->read) {
       sendData(currentPos);
-      usleep(10);
-      if(file->size - file->sent < 50)
+      usleep(15);
+      if(file->size - file->sent < 20)
         sendData(currentPos), usleep(3);
       if(!headerAck && currentPos % 300 == 0) sendHeader(1);
     }

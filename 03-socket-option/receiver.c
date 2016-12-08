@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
     if(file && (file->size - file->received < 200)){
       lastSend -= 20 - (file->size - file->received) / 10;
     }
-    if(file && (file->received - lastRecv > 800)){
+    if(file && (file->received - lastRecv > 600)){
       lastSend = -1;
     }
     if (send_addr_set && (
