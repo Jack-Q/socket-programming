@@ -1,0 +1,7 @@
+client
+server
+*.o
+*.log
+.gdb_history
+test*
+JACK*
