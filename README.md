@@ -1,5 +1,5 @@
-Linux Socket Networking
-=======================
+Linux Socket Programming
+========================
 
 This repo contians small program related to Linux Socket programming.
 
